@@ -2,7 +2,11 @@ class Container(object):
 
     def __init__(self, key, db):
         self.db = db
-        self.key = db
+        self.key = key
+
+    def clear(self):
+        """Remove all elements from the set."""
+        del self.db[self.key]
 
 
 class Set(Container):
@@ -15,17 +19,13 @@ class Set(Container):
     def remove(self, value):
         """Remove the value from the redis set."""
         if not self.db.srem(self.key, value):
-            raise KeyError, key
+            raise KeyError, value
         
     def pop(self):
         """Remove and return (pop) a random element from the Set."""
-        self.db.spop(self.key)
+        return self.db.spop(self.key)
 
-    def clear(self):
-        """Remove all elements from the set."""
-        self.db.del(self.key)
-
-    def discard(self):
+    def discard(self, value):
         """Remove element elem from the set if it is present."""
         self.db.srem(self.key, value)
 
@@ -38,33 +38,39 @@ class Set(Container):
 
     def isdisjoint(self, other):
         """Return True if the set has no elements in common with other."""
-        return bool(self.db.sinter([self.key, other.key]))
+        return not bool(self.db.sinter([self.key, other.key]))
 
     def issubset(self, other):
         """Test whether every element in the set is in other."""
         return self <= other
 
-    def __lte__(self, other):
-        return self.db.sinter(self.key, other.key) == self.db.smembers(self.key)
+    def __le__(self, other):
+        return self.db.sinter([self.key, other.key]) == self.all
 
     def __lt__(self, other):
         """Test whether the set is a true subset of other."""
         return self <= other and self != other
 
-    def __ne__(self, other):
-        return bool(self.db.sdiff(self.key, other.key))
+    def __eq__(self, other):
+        if other.key == self.key:
+            return True
+        slen, olen = len(self), len(other)
+        if olen == slen:
+            return not bool(self - other)
+        else:
+            return False
 
     def issuperset(self, other):
         """Test whether every element in other is in the set."""
         return self >= other
 
-    def __gte__(self, other):
+    def __ge__(self, other):
         """Test whether every element in other is in the set."""
-        return self.db.sinter([self.key, other.key]) == self.db.smembers(other.key)
+        return self.db.sinter([self.key, other.key]) == other.all
     
     def __gt__(self, other):
         """Test whether the set is a true superset of other."""
-        return self <= other and self != other
+        return self >= other and self != other
 
     def union(self, *others):
         """Return a new set with elements from the set and all others."""
@@ -125,8 +131,13 @@ class Set(Container):
     def __unicode__(self):
         pass
 
+    @property
     def members(self):
         return self.db.smembers(self.key)
+
+    @property
+    def all(self):
+        return self.members
 
     # TODO: implement this
     def symmetric_difference__update(self, *others):
@@ -137,4 +148,62 @@ class Set(Container):
     def __ixor__(self, other):
         pass
 
+
+class List(Container):
+
+    @property
+    def all(self):
+        """Returns all items in the list."""
+        return self.db.lrange(self.key, 0, -1)
+
+    def __len__(self):
+        return self.db.llen(self.key)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            indices = index.indices(len(self))
+            return self.db.lrange(self.key, indices[0], indices[1])
+        elif not isinstance(index, int):
+            raise TypeError
+        else:
+            return self.db.lrange(self.key, index, index + 1)[0]
+
+    def append(self, value):
+        """Append the value to the list."""
+        self.db.rpush(self.key, value)
+    push = append
+
+    def extend(self, iterable):
+        """Extend list by appending elements from the iterable."""
+        map(lambda i: self.db.rpush(self.key, i), iterable)
+
+    def count(self, value):
+        """Return number of occurrences of value."""
+        return self.all.count(value)
+
+    def index(self, value):
+        """Return first index of value."""
+        return self.db.lindex(self.key, value)
+
+    def pop(self):
+        """Remove and return the last item"""
+        return self.db.rpop(self.key)
+
+    def lpop(self):
+        """Remove and return the first item."""
+        return self.db.lpop(self.key)
+
+    def remove(self, value):
+        """Remove first occurrence of value."""
+        self.db.lrem(self.key, 1, value)
+
+    def reverse(self):
+        """Reverse in place."""
+        r = self.all.reverse()
+        self.clear()
+        self.extend(r)
+
+    def ltrim(self, start, end):
+        """Trim the list from start to end."""
+        self.db.ltrim(self.key, start, end)
 
