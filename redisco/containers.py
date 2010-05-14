@@ -5,7 +5,7 @@ class Container(object):
         self.key = key
 
     def clear(self):
-        """Remove all elements from the set."""
+        """Remove container from Redis database."""
         del self.db[self.key]
 
 
@@ -45,7 +45,7 @@ class Set(Container):
         return self <= other
 
     def __le__(self, other):
-        return self.db.sinter([self.key, other.key]) == self.all
+        return self.db.sinter([self.key, other.key]) == self.all()
 
     def __lt__(self, other):
         """Test whether the set is a true subset of other."""
@@ -66,7 +66,7 @@ class Set(Container):
 
     def __ge__(self, other):
         """Test whether every element in other is in the set."""
-        return self.db.sinter([self.key, other.key]) == other.all
+        return self.db.sinter([self.key, other.key]) == other.all()
     
     def __gt__(self, other):
         """Test whether the set is a true superset of other."""
@@ -134,13 +134,15 @@ class Set(Container):
     def __unicode__(self):
         pass
 
-    @property
-    def members(self):
+    def all(self):
         return self.db.smembers(self.key)
-    all = members
+    members = property(all)
 
     def copy(self, key):
-        """Copy the set to another key and return the new Set."""
+        """Copy the set to another key and return the new Set.
+
+        WARNING: If the key exists, it overwrites it.
+        """
         copy = Set(key=key, db=self.db)
         copy.clear()
         copy |= self
@@ -158,22 +160,25 @@ class Set(Container):
 
 class List(Container):
 
-    @property
     def all(self):
         """Returns all items in the list."""
         return self.db.lrange(self.key, 0, -1)
+    members = property(all)
 
     def __len__(self):
         return self.db.llen(self.key)
 
     def __getitem__(self, index):
-        if isinstance(index, slice):
+        if isinstance(index, int):
+            return self.db.lindex(self.key, index)
+        elif isinstance(index, slice):
             indices = index.indices(len(self))
             return self.db.lrange(self.key, indices[0], indices[1])
-        elif not isinstance(index, int):
-            raise TypeError
         else:
-            return self.db.lrange(self.key, index, index + 1)[0]
+            raise TypeError
+
+    def __setitem__(self, index, value):
+        self.db.lset(self.key, index, value)
 
     def append(self, value):
         """Append the value to the list."""
@@ -186,31 +191,50 @@ class List(Container):
 
     def count(self, value):
         """Return number of occurrences of value."""
-        return self.all.count(value)
+        return self.members.count(value)
 
     def index(self, value):
         """Return first index of value."""
-        return self.db.lindex(self.key, value)
+        return self.all().index(value)
 
     def pop(self):
         """Remove and return the last item"""
         return self.db.rpop(self.key)
 
-    def lpop(self):
+    def shift(self):
         """Remove and return the first item."""
         return self.db.lpop(self.key)
 
-    def remove(self, value):
+    def unshift(self, value):
+        """Add an element at the beginning of the list."""
+        self.db.lpush(self.key, value)
+
+    def remove(self, value, num=1):
         """Remove first occurrence of value."""
-        self.db.lrem(self.key, 1, value)
+        self.db.lrem(self.key, value, num)
 
     def reverse(self):
         """Reverse in place."""
-        r = self.all.reverse()
+        r = self[:]
+        r.reverse()
         self.clear()
         self.extend(r)
 
-    def ltrim(self, start, end):
+    def copy(self, key):
+        """Copy the list to a new list.
+
+        WARNING: If key exists, it clears it before copying.
+        """
+        copy = List(key, self.db)
+        copy.clear()
+        copy.extend(self)
+        return copy
+
+    def trim(self, start, end):
         """Trim the list from start to end."""
         self.db.ltrim(self.key, start, end)
 
+    def __iter__(self):
+        m = self.members
+        for e in range(len(m)):
+            yield m[e]
