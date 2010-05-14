@@ -47,6 +47,8 @@ class Set(Container):
         """Return the cardinality of set."""
         return self.db.scard(self.key)
 
+    # TODO: Note, the elem argument to the __contains__(), remove(),
+    #       and discard() methods may be a set
     def __contains__(self, value):
         return self.db.sismember(self.key, value)
 
@@ -170,6 +172,11 @@ class Set(Container):
     # TODO: implement this
     def __ixor__(self, other):
         pass
+
+    def __iter__(self):
+        m = self.members
+        for e in m:
+            yield e
 
 
 class List(Container):

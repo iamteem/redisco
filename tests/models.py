@@ -24,19 +24,19 @@ class ModelTestCase(unittest.TestCase):
         self.client.flushdb()
 
     def test_key(self):
-        self.assertEqual('Person', Person.key)
+        self.assertEqual('Person', Person.ckey)
 
     def test_attributes(self):
         person = Person(first_name="Granny", last_name="Goose")
-        self.assertEqual("Granny", person.first_name)
-        self.assertEqual("Goose", person.last_name)
-
         naruto = Ninja(first_name="Naruto", last_name="Uzumaki",
                 weapon="Rasengan")
 
         self.assertEqual("Naruto", naruto.first_name)
         self.assertEqual("Uzumaki", naruto.last_name)
         self.assertEqual("Rasengan", naruto.weapon)
+        self.assertEqual("Granny", person.first_name)
+        self.assertEqual("Goose", person.last_name)
+
 
     def test_save(self):
         person1 = Person(first_name="Granny", last_name="Goose")
@@ -46,3 +46,27 @@ class ModelTestCase(unittest.TestCase):
 
         self.assertEqual('1', person1.id)
         self.assertEqual('2', person2.id)
+
+    def test_find(self):
+        person1 = Person(first_name="Granny", last_name="Goose")
+        person1.save()
+        person2 = Person(first_name="Jejomar", last_name="Binay")
+        person2.save()
+
+        p1 = Person.objects['1']
+        p2 = Person.objects[2]
+
+        self.assertEqual('Jejomar', p2.first_name)
+        self.assertEqual('Binay', p2.last_name)
+
+        self.assertEqual('Granny', p1.first_name)
+        self.assertEqual('Goose', p1.last_name)
+
+    def test_all(self):
+        person1 = Person(first_name="Granny", last_name="Goose")
+        person1.save()
+        person2 = Person(first_name="Jejomar", last_name="Binay")
+        person2.save()
+
+        all = Person.objects.all()
+        self.assertEqual(set([person1, person2]), all.members)
