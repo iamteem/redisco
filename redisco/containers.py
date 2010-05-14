@@ -107,6 +107,7 @@ class Set(Container):
 
     def __ior__(self, other):
         self.db.sunionstore(self.key, [self.key, other.key])
+        return self
 
     def intersection_update(self, *others):
         """Update the set, keeping only elements found in it and all others."""
@@ -114,16 +115,18 @@ class Set(Container):
 
     def __iand__(self, other):
         self.db.sinterstore(self.key, [self.key, other.key])
+        return self
 
     def difference_update(self, *others):
         """Update the set, removing elements found in others."""
         self.db.sdiffstore(self.key, [o.key for o in [self.key] + others])
         
     def __isub__(self, other):
-        self.db.sinterstore(self.key, [self.key, other.key])
+        self.db.sdiffstore(self.key, [self.key, other.key])
+        return self
     
     def __repr__(self):
-        return u"redisco.Set(key=%s)" % self.key
+        return u"<redisco.containers.Set(key=%s)>" % self.key
 
     def __str__(self):
         pass
@@ -134,13 +137,17 @@ class Set(Container):
     @property
     def members(self):
         return self.db.smembers(self.key)
+    all = members
 
-    @property
-    def all(self):
-        return self.members
+    def copy(self, key):
+        """Copy the set to another key and return the new Set."""
+        copy = Set(key=key, db=self.db)
+        copy.clear()
+        copy |= self
+        return copy
 
     # TODO: implement this
-    def symmetric_difference__update(self, *others):
+    def symmetric_difference_update(self, *others):
         """Update the set, keeping only elements found in either set, but not in both."""
         pass
 

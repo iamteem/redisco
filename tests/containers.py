@@ -2,7 +2,7 @@ import redis
 import unittest
 from redisco import containers as cont
 
-class TestSet(unittest.TestCase):
+class SetTestCase(unittest.TestCase):
     def setUp(self):
         self.client = redis.Redis(host='localhost', port=6380, db=10)
         self.client.flushdb()
@@ -31,6 +31,18 @@ class TestSet(unittest.TestCase):
         # pop
         self.assertEqual('oranges', fruits.pop())
 
+        # copy
+        fruits.add('apples')
+        fruits.add('oranges')
+        basket = fruits.copy('basket')
+        self.assertEqual(set(['apples', 'oranges']), basket.all)
+
+        # update
+        o = cont.Set('o', self.client)
+        o.add('kiwis')
+        fruits.update(o)
+        self.assertEqual(set(['kiwis', 'apples', 'oranges']),
+                fruits.all)
 
     def test_comparisons(self):
         all_pls = cont.Set(key='ProgrammingLanguages', db=self.client)
@@ -46,6 +58,7 @@ class TestSet(unittest.TestCase):
         all_pls.add('C++')
         all_pls.add('Haskell')
         all_pls.add('C#')
+        all_pls.add('Go')
 
         my_pls.add('Ruby')
         my_pls.add('Python')
@@ -92,4 +105,35 @@ class TestSet(unittest.TestCase):
         self.assertEqual(set(['Ruby', 'Python', 'Lua', 'Haskell']),
                 my_pls - fruits)
         self.assertEqual(set(['apples', 'oranges']), fruits - my_pls)
+
+        # symmetric difference
+        o_pls.add('C++')
+        o_pls.add('C#')
+        o_pls.add('Go')
+        my_pls.add('Pascal')
+
+        self.assertEqual(set(['C++', 'C#', 'Go', 'Pascal']),
+                my_pls.symmetric_difference(o_pls))
+
+    def test_operations_with_updates(self):
+        abc = cont.Set('abc', self.client)
+        for c in 'abc':
+            abc.add(c)
+
+        def_ = cont.Set('def', self.client)
+        for c in 'def':
+            def_.add(c)
+
+        # __ior__
+        abc |= def_
+        self.assertEqual(set(['a', 'b', 'c', 'd', 'e', 'f']),
+                abc.all)
+
+        abc &= def_
+        self.assertEqual(set(['d', 'e', 'f']), abc.all)
+
+        for c in 'abc':
+            abc.add(c)
+        abc -= def_
+        self.assertEqual(set(['a', 'b', 'c']), abc.all)
 

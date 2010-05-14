@@ -1,7 +1,7 @@
 import unittest
-from containers import TestSet
+from containers import SetTestCase
 
 def all_tests():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestSet))
+    suite.addTest(unittest.makeSuite(SetTestCase))
     return suite
