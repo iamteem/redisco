@@ -1,7 +1,21 @@
-class Container(object):
+from connection import _get_client
 
-    def __init__(self, key, db):
-        self.db = db
+class Container(object):
+    """Create a container object saved in Redis.
+
+    Arguments:
+        key -- the Redis key this container is stored at
+        db  -- the Redis client object. Default: None
+
+    When ``db`` is not set, the gets the default connection from
+    ``redisco.connection`` module.
+    """
+
+    def __init__(self, key, db=None):
+        if db is None:
+            self.db = _get_client()
+        else:
+            self.db = db
         self.key = key
 
     def clear(self):

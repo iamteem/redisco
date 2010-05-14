@@ -1,17 +1,19 @@
-import redis
 import unittest
+from redisco.connection import connect, _get_client
 from redisco import containers as cont
+
+connect(host='localhost', port=6380, db=10)
 
 class SetTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = redis.Redis(host='localhost', port=6380, db=10)
+        self.client = _get_client()
         self.client.flushdb()
 
     def tearDown(self):
         self.client.flushdb()
 
     def test_common_operations(self):
-        fruits = cont.Set(key='fruits', db=self.client)
+        fruits = cont.Set(key='fruits')
         fruits.add('apples')
         fruits.add('oranges')
         self.assertEqual(set(['apples', 'oranges']), fruits.all())
@@ -45,9 +47,9 @@ class SetTestCase(unittest.TestCase):
                 fruits.all())
 
     def test_comparisons(self):
-        all_pls = cont.Set(key='ProgrammingLanguages', db=self.client)
-        my_pls = cont.Set(key='MyPLs', db=self.client)
-        o_pls = cont.Set(key='OPLs', db=self.client)
+        all_pls = cont.Set(key='ProgrammingLanguages')
+        my_pls = cont.Set(key='MyPLs')
+        o_pls = cont.Set(key='OPLs')
         all_pls.add('Python')
         all_pls.add('Ruby')
         all_pls.add('PHP')
@@ -74,7 +76,7 @@ class SetTestCase(unittest.TestCase):
         self.assertNotEqual(my_pls, all_pls)
         self.assertEqual(o_pls, my_pls)
 
-        fruits = cont.Set(key='fruits', db=self.client)
+        fruits = cont.Set(key='fruits')
         fruits.add('apples')
         fruits.add('oranges')
 
@@ -140,7 +142,7 @@ class SetTestCase(unittest.TestCase):
 
 class ListTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = redis.Redis(host='localhost', port=6380, db=10)
+        self.client = _get_client()
         self.client.flushdb()
 
     def tearDown(self):
