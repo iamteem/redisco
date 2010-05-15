@@ -70,3 +70,23 @@ class ModelTestCase(unittest.TestCase):
 
         all = Person.objects.all()
         self.assertEqual(set([person1, person2]), all.members)
+
+    def test_inheritance_save(self):
+        person = Person(first_name="Granny", last_name="Goose")
+        naruto = Ninja(first_name="Naruto", last_name="Uzumaki",
+                weapon="Rasengan")
+
+        self.assertEqual(set(['first_name', 'last_name', 'weapon']),
+                set(Ninja.__dict__['__attributes']))
+
+        person.save()
+        naruto.save()
+
+        self.assertEqual(1, len(Ninja.objects.all()))
+        self.assertEqual(1, len(Person.objects.all()))
+
+        n = Ninja.objects[1]
+        self.assertEqual("Naruto", n.first_name)
+        self.assertEqual("Uzumaki", n.last_name)
+        self.assertEqual("Rasengan", n.weapon)
+

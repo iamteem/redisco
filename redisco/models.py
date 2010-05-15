@@ -3,6 +3,10 @@ from containers import Set
 from key import Key
 from utils import DictWithDefault
 
+
+class MissingID(Exception):
+    pass
+
 class Attribute(object):
     def __init__(self, index=False):
         self.index = index
@@ -66,12 +70,25 @@ class ManagerDescriptor(object):
 
 class ModelBase(type):
     def __new__(cls, name, bases, attrs):
+
+        # get the inherited stuff from the bases
         __attributes, managers = [], []
+        for base in bases:
+            for k, v in base.__dict__.items():
+                if isinstance(v, Attribute):
+                    v.name = k
+                    __attributes.append(k)
+
+        # get the attributes
         for k, v in attrs.iteritems():
             if isinstance(v, Attribute):
                 v.name = k
                 __attributes.append(k)
-        attrs['__attributes'] = __attributes
+        if not attrs.has_key('__attributes'):
+            attrs['__attributes'] = __attributes
+        else:
+            attrs['__attributes'].extend(__attributes)
+
         key = Key(name)
         attrs['ckey'] = key
         attrs['_db'] = None
