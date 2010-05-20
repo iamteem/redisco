@@ -3,16 +3,14 @@ import unittest
 from redisco import models
 
 class Person(models.Model):
-    first_name = models.Attribute(index=True)
-    last_name = models.Attribute(index=True)
-    full_name = models.Index()
+    first_name = models.Attribute(indexed=True)
+    last_name = models.Attribute(indexed=True)
 
     def full_name(self):
         return "%s %s" % (self.first_name, self.last_name,)
 
-
-class Ninja(Person):
-    weapon = models.Attribute()
+    class Meta:
+        indices = ['full_name']
 
 
 class ModelTestCase(unittest.TestCase):
@@ -24,19 +22,17 @@ class ModelTestCase(unittest.TestCase):
         self.client.flushdb()
 
     def test_key(self):
-        self.assertEqual('Person', Person.ckey)
+        self.assertEqual('Person', Person._key)
+
+
+    def test_is_new(self):
+        p = Person(first_name="Darken", last_name="Rahl")
+        self.assertTrue(p.is_new())
 
     def test_attributes(self):
         person = Person(first_name="Granny", last_name="Goose")
-        naruto = Ninja(first_name="Naruto", last_name="Uzumaki",
-                weapon="Rasengan")
-
-        self.assertEqual("Naruto", naruto.first_name)
-        self.assertEqual("Uzumaki", naruto.last_name)
-        self.assertEqual("Rasengan", naruto.weapon)
         self.assertEqual("Granny", person.first_name)
         self.assertEqual("Goose", person.last_name)
-
 
     def test_save(self):
         person1 = Person(first_name="Granny", last_name="Goose")
@@ -70,23 +66,4 @@ class ModelTestCase(unittest.TestCase):
 
         all = Person.objects.all()
         self.assertEqual(set([person1, person2]), all.members)
-
-    def test_inheritance_save(self):
-        person = Person(first_name="Granny", last_name="Goose")
-        naruto = Ninja(first_name="Naruto", last_name="Uzumaki",
-                weapon="Rasengan")
-
-        self.assertEqual(set(['first_name', 'last_name', 'weapon']),
-                set(Ninja.__dict__['__attributes']))
-
-        person.save()
-        naruto.save()
-
-        self.assertEqual(1, len(Ninja.objects.all()))
-        self.assertEqual(1, len(Person.objects.all()))
-
-        n = Ninja.objects[1]
-        self.assertEqual("Naruto", n.first_name)
-        self.assertEqual("Uzumaki", n.last_name)
-        self.assertEqual("Rasengan", n.weapon)
 

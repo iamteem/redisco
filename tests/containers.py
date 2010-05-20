@@ -94,28 +94,18 @@ class SetTestCase(unittest.TestCase):
         self.assertTrue(o_pls.issubset(my_pls))
 
         # union
+        s = fruits.union("fruits|mypls", my_pls)
         self.assertEqual(set(['Ruby', 'Python', 'Lua', 'Haskell', 'apples',
-            'oranges']), fruits.union(my_pls))
-        self.assertEqual(set(['Ruby', 'Python', 'Lua', 'Haskell', 'apples',
-            'oranges']), fruits | my_pls)
+            'oranges']), s.members)
 
         # intersection
-        self.assertEqual(set([]), fruits.intersection(my_pls))
-        self.assertEqual(my_pls.all(), all_pls & my_pls)
+        inter = fruits.intersection('fruits&mypls', my_pls)
+        self.assertEqual(set([]), inter.members)
 
         # difference
-        self.assertEqual(set(['Ruby', 'Python', 'Lua', 'Haskell']),
-                my_pls - fruits)
-        self.assertEqual(set(['apples', 'oranges']), fruits - my_pls)
+        s = fruits.difference('fruits-my_pls', my_pls)
+        self.assertEqual(set(['apples', 'oranges']), s.members)
 
-        # symmetric difference
-        o_pls.add('C++')
-        o_pls.add('C#')
-        o_pls.add('Go')
-        my_pls.add('Pascal')
-
-        self.assertEqual(set(['C++', 'C#', 'Go', 'Pascal']),
-                my_pls.symmetric_difference(o_pls))
 
     def test_operations_with_updates(self):
         abc = cont.Set('abc', self.client)

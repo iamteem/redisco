@@ -72,7 +72,7 @@ class Set(Container):
             return True
         slen, olen = len(self), len(other)
         if olen == slen:
-            return not bool(self - other)
+            return self.members == other.members
         else:
             return False
 
@@ -88,34 +88,22 @@ class Set(Container):
         """Test whether the set is a true superset of other."""
         return self >= other and self != other
 
-    def union(self, *others):
+
+    # SET Operations
+    def union(self, key, *others):
         """Return a new set with elements from the set and all others."""
-        return self.db.sunion([self.key] + [o.key for o in others])
+        self.db.sunionstore(key, [self.key] + [o.key for o in others])
+        return Set(key)
 
-    def __or__(self, other):
-        return self.db.sunion([self.key, other.key])
-
-    def intersection(self, *others):
+    def intersection(self, key, *others):
         """Return a new set with elements common to the set and all others."""
-        return self.db.sinter([self.key] + [o.key for o in others])
+        self.db.sinterstore(key, [self.key] + [o.key for o in others])
+        return Set(key)
 
-    def __and__(self, other):
-        return self.db.sinter([self.key, other.key])
-
-    def difference(self, *others):
+    def difference(self, key, *others):
         """Return a new set with elements in the set that are not in the others."""
-        return self.db.sdiff([self.key] + [o.key for o in others])
-
-    def __sub__(self, other):
-        return self.db.sdiff([self.key, other.key])
-
-    def symmetric_difference(self, other):
-        """Return a new set with elements in either the set or other but not both."""
-        return self ^ other
-    
-    def __xor__(self, other):
-        """Return a new set with elements in either the set or other but not both."""
-        return self.db.sunion([self.key, other.key]) - self.db.sinter([self.key, other.key])
+        self.db.sdiffstore(key, [self.key] + [o.key for o in others])
+        return Set(key)
 
     def update(self, *others):
         """Update the set, adding elements from all others."""
@@ -145,10 +133,10 @@ class Set(Container):
         return u"<redisco.containers.Set(key=%s)>" % self.key
 
     def __str__(self):
-        pass
+        return self.__repr__()
 
     def __unicode__(self):
-        pass
+        return self.__str__()
 
     def all(self):
         return self.db.smembers(self.key)
@@ -163,15 +151,6 @@ class Set(Container):
         copy.clear()
         copy |= self
         return copy
-
-    # TODO: implement this
-    def symmetric_difference_update(self, *others):
-        """Update the set, keeping only elements found in either set, but not in both."""
-        pass
-
-    # TODO: implement this
-    def __ixor__(self, other):
-        pass
 
     def __iter__(self):
         m = self.members

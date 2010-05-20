@@ -1,200 +1,279 @@
+import base64
 from connection import _get_client
 from containers import Set
 from key import Key
 from utils import DictWithDefault
 
 
-class MissingID(Exception):
-    pass
+# Managers
 
-class Attribute(object):
-    def __init__(self, index=False):
-        self.index = index
-
-    def __set__(self, instance, value):
-        instance.write_local(self.name, value)
+class ManagerDescriptor(object):
+    def __init__(self, manager):
+        self.manager = manager
 
     def __get__(self, instance, owner):
-        return instance.read_local(self.name)
+        if instance != None:
+            raise AttributeError
+        return self.manager
 
+class Manager(object):
+    def __init__(self, model_class):
+        self.model_class = model_class
 
-class Index(object):
-    pass
+    def get_model_set(self):
+        return ModelSet(self.model_class)
 
+    def all(self):
+        return self.get_model_set()
 
-class Attributes(object):
+    def __getitem__(self, idx):
+        return self.get_model_set()[idx]
 
-    def __get__(self, instance, owner):
-        if not hasattr(instance, '_attr_values'):
-            def default_read_remote(h, k):
-                h.setdefault(k, instance.read_remote(k))
-            instance._attr_values = DictWithDefault(default_read_remote)
-        return instance._attr_values
-
-
+# Model Set
 class ModelSet(Set):
+    def __init__(self, model_class):
+        self.model_class = model_class
+        self.db = model_class._db
+        self.key = model_class._key['all']
 
-    def __init__(self, model, key=None, db=None):
-        super(ModelSet, self).__init__(key or model.ckey['all'], db)
-        self.model = model
+    def __getitem__(self, index):
+        key = self.model_class._key[index]
+        if self.db.exists(key):
+            kwargs = self.db.hgetall(key)
+            instance = self.model_class(**kwargs)
+            instance._id = str(index)
+            return instance
+        else:
+            return None
+
+    @property
+    def set(self):
+        return Set(self.key)
 
     @property
     def members(self):
-        ids = super(ModelSet, self).members
-        return set(map(lambda id: self.model(id=id), ids))
+        return set(map(lambda id: self[id], self.set.members))
+
+    def __iter__(self):
+        pass
+
+    def __repr__(self):
+        pass
+
+    def __len__(self):
+        pass
+
+    def filter(self, **kwargs):
+        pass
+
+    def exclude(self, **kwargs):
+        pass
+
+    def order_by(self, *field):
+        pass
+
+    def __reversed__(self):
+        pass
+
+    def using(self, db):
+        pass
+
+    def count(self):
+        pass
+
+    def create(self, **kwargs):
+        pass
+
+    def get(self, **kwargs):
+        pass
+
+    def exists(self):
+        pass
+
+# Errors
+class ValidationError(StandardError):
+    pass
+
+class MissingID(StandardError):
+    pass
 
 
-class Manager(object):
-
-    def __getitem__(self, index):
-        if self.exists(index):
-            return self.model(id=index)
-
-    def __call__(self, model):
-        self.model = model
-        return self
-
-    def exists(self, index):
-        return str(index) in self.all()
-
-    def all(self):
-        return ModelSet(self.model)
-
-class ManagerDescriptor(object):
-
-    def __init__(self):
-        self.manager = Manager()
+# Model
+class Attribute(object):
+    def __init__(self, name=None, indexed=True):
+        self.name = name
+        self.indexed = True
 
     def __get__(self, instance, owner):
-        return self.manager(owner)
+        try:
+            return getattr(instance, '_' + self.name)
+        except AttributeError:
+            return None
+
+    def __set__(self, instance, value):
+        setattr(instance, '_' + self.name, value)
+
+    def typecast_for_read(self, value):
+        return value
+
+    def typecast_for_storage(self, value):
+        return str(value)
+
+
+def _initialize_attributes(model_class, name, bases, attrs):
+    """Initialize the attributes of the model."""
+    model_class._attributes = {}
+    for k, v in attrs.iteritems():
+        if isinstance(v, Attribute):
+            model_class._attributes[k] = v
+            v.name = v.name or k
+
+def _initialize_indices(model_class, name, bases, attrs):
+    model_class._indices = []
+    for k, v in attrs.iteritems():
+        if isinstance(v, Attribute) and v.indexed:
+            model_class._indices.append(k)
+
+    if model_class._meta['indices']:
+        model_class._indices.extend(model_class._meta['indices'])
+
+def _initialize_key(model_class, name):
+    model_class._key = Key(name)
+
+def _initialize_db(model_class):
+    model_class._db = model_class._meta['db'] or _get_client()
+
+def _initialize_manager(model_class):
+    model_class.objects = ManagerDescriptor(Manager(model_class))
+
+
+class ModelOptions(object):
+    def __init__(self, meta):
+        self.meta = meta
+
+    def get_field(self, field_name):
+        if self.meta is None:
+            return None
+        try:
+            return self.meta.__dict__[field_name]
+        except KeyError:
+            return None
+    __getitem__ = get_field
+
 
 class ModelBase(type):
-    def __new__(cls, name, bases, attrs):
-
-        # get the inherited stuff from the bases
-        __attributes, managers = [], []
-        for base in bases:
-            for k, v in base.__dict__.items():
-                if isinstance(v, Attribute):
-                    v.name = k
-                    __attributes.append(k)
-
-        # get the attributes
-        for k, v in attrs.iteritems():
-            if isinstance(v, Attribute):
-                v.name = k
-                __attributes.append(k)
-        if not attrs.has_key('__attributes'):
-            attrs['__attributes'] = __attributes
-        else:
-            attrs['__attributes'].extend(__attributes)
-
-        key = Key(name)
-        attrs['ckey'] = key
-        attrs['_db'] = None
-        attrs['_attributes'] = Attributes()
-        attrs['objects'] = ManagerDescriptor()
-        return type.__new__(cls, name, bases, attrs)
+    def __init__(cls, name, bases, attrs):
+        super(ModelBase, cls).__init__(name, bases, attrs)
+        cls._meta = ModelOptions(attrs.pop('Meta', None))
+        _initialize_attributes(cls, name, bases, attrs)
+        _initialize_indices(cls, name, bases, attrs)
+        _initialize_key(cls, name)
+        _initialize_db(cls)
+        _initialize_manager(cls)
 
 
 class Model(object):
     __metaclass__ = ModelBase
 
     def __init__(self, **kwargs):
-        if self.__class__._db is None:
-            self.__class__._db = _get_client()
+        for att in self.attributes.values():
+            if att.name in kwargs:
+                att.__set__(self, kwargs[att.name])
 
-        if 'id' in kwargs:
-            self.id = kwargs['id']
-            del kwargs['id']
-        else:
-            self.id = None
-        self.update_attributes(**kwargs)
+    def clean_fields(self):
+        pass
 
-    def update_attributes(self, **kwargs):
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
-
-    def read_local(self, key):
-        return self._attributes[key]
-
-    def read_remote(self, key):
-        if not self.is_new:
-            return self.db.hget(self.key, key)
-
-    def write_local(self, key, value):
-        self._attributes[key] = value
-
-    def write(self):
-        if self.attributes:
-            for att in self.attributes:
-                value = getattr(self, att)
-                if value:
-                    self.db.hset(self.key, att, value)
-                else:
-                    self.db.hdel(self.key, att)
-
-    def initialize_id(self):
-        self.id = str(self.db.incr(self.ckey['id']))
-
-    def create_model_membership(self):
-        self.__class__.objects.all().add(self.id)
+    def clean(self):
+        """Override this. in the model"""
+        pass
 
     def save(self):
-        if not self.is_new:
-            return self.create()
+        if self.is_new():
+            self._initialize_id()
+        self._create_membership()
+        h = {}
+        for k, v in self.attributes.iteritems():
+            h[k] = v.typecast_for_storage(getattr(self, k))
+        self.db.hmset(self.key(), h)
 
-        self.write()
-        self.update_indices()
-        return self
+    def _initialize_id(self):
+        self.id = str(self.db.incr(self._key['id']))
 
-    def create(self):
-        self.initialize_id()
+    def key(self):
+        return self._key[self.id]
 
-        self.create_model_membership()
-        self.write()
-        self.update_indices()
-        return self
+    def delete(self):
+        del self.db[self.key()]
 
+    def _create_membership(self):
+        Set(self._key['all']).add(self.id)
 
-    def update_indices(self):
+    def _delete_membership(self):
+        Set(self._key['all']).remove(self.id)
+
+    def _update_indices(self):
         self.delete_from_indices()
         self.add_to_indices()
 
-    def delete_from_indices(self):
-        pass
+    def _add_to_indices(self):
+        s = Set(self.key()['_indices'])
+        pipe = s.db.pipeline()
+        for att in self.indices:
+            self._add_to_index(att, pipe=pipe)
+        pipe.execute()
 
-    def add_to_indices(self):
-        pass
+    def _add_to_index(self, att, val=None, pipe=None):
+        index = self._index_key_for(att, val)
+        pipe.sadd(index, self.id)
+        pipe.sadd(self.key()['_indices'], index)
 
-    @property
-    def attributes(self):
-        return self.__class__.__dict__['__attributes']
-
-    @property
-    def key(self):
-        if not self.is_new:
-            return self.__class__.ckey[self.id]
-
-    @property
-    def is_new(self):
-        return not hasattr(self, '_id')
-
-    @property
-    def db(self):
-        return self.__class__._db
+    def _delete_from_indices(self):
+        s = Set(self.key()['_indices'])
+        pipe = s.db.pipeline()
+        for index in s.members:
+            pipe.srem(index, self.id)
+        pipe.delete(s.key)
+        pipe.execute()
 
     @property
     def id(self):
+        if not hasattr(self, '_id'):
+            raise MissingID
         return self._id
 
     @id.setter
-    def id(self, value):
-        self._id = value
+    def id(self, val):
+        self._id = str(val)
 
-    def __eq__(self, other):
-        return type(self) == type(other) and self.key == other.key
+    @property
+    def attributes(cls):
+        """Return the attributes of the model."""
+        return dict(cls._attributes)
+
+    @property
+    def indices(cls):
+        return cls._indices
+
+    @property
+    def db(cls):
+        return cls._db
+
+    def _index_key_for(self, att, value=None):
+        if value is None:
+            value = getattr(self, att)
+        def encode(s):
+            return base64.b64encode(s).replace("\n", "")
+        return self._key[att][encode(value)]
+
+    def is_new(self):
+        return not hasattr(self, '_id')
 
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.key())
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.key() == other.key()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
