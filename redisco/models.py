@@ -19,10 +19,9 @@ class ManagerDescriptor(object):
 class Manager(object):
     def __init__(self, model_class):
         self.model_class = model_class
-        self._filters = {}
 
     def get_model_set(self):
-        return ModelSet(self.model_class, filters=self._filters)
+        return ModelSet(self.model_class)
 
     def all(self):
         return self.get_model_set()
@@ -31,25 +30,26 @@ class Manager(object):
         return self.get_model_set()[idx]
 
     def create(self, **kwargs):
-        instance = self.model_class(**kwargs)
-        instance.save()
-        return instance
+        return self.get_model_set().create(**kwargs)
 
     def filter(self, **kwargs):
-        self._filters.update(kwargs)
-        return self.get_model_set()
+        return self.get_model_set().filter(**kwargs)
 
     def get_by_id(self, id):
-        return self.get_model_set()._get_item_with_id(id)
+        return self.get_model_set().get_by_id(id)
 
 
 # Model Set
 class ModelSet(Set):
-    def __init__(self, model_class, filters=None):
+    def __init__(self, model_class):
         self.model_class = model_class
         self.db = model_class._db
         self.key = model_class._key['all']
-        self._filters = filters
+        self._filters = {}
+
+    #################
+    # MAGIC METHODS #
+    #################
 
     def __getitem__(self, index):
         l = list(self.set)
@@ -64,15 +64,22 @@ class ModelSet(Set):
     def __str__(self):
         return "<ModelSet %s>" % self.model_class.__name__
 
-    def _get_item_with_id(self, id):
-        key = self.model_class._key[id]
-        if self.db.exists(key):
-            kwargs = self.db.hgetall(key)
-            instance = self.model_class(**kwargs)
-            instance._id = str(id)
-            return instance
-        else:
-            return None
+    def __reversed__(self):
+        pass
+
+    def __iter__(self):
+        for m in self.members:
+            yield m
+
+    def __repr__(self):
+        pass
+
+    def __len__(self):
+        return len(self.set)
+
+    ##########################################
+    # METHODS THAT RETURN A SET OF INSTANCES #
+    ##########################################
 
     @property
     def set(self):
@@ -91,46 +98,37 @@ class ModelSet(Set):
             s = Set(new_set_key)
         return s
 
-    def filter(self, **kwargs):
-        if not self._filters:
-            self._filters = {}
-        self._filters.update(kwargs)
-        return self
-
-
-    def _build_key_from_filter_item(self, index, value):
-        return self.model_class._key[index][_encode_key(value)]
-
     @property
     def members(self):
         return set(map(lambda id: self._get_item_with_id(id), self.set.members))
 
-    def __iter__(self):
-        return iter(self.set)
+    def get_by_id(self, id):
+        return self._get_item_with_id(id)
 
-    def __repr__(self):
-        pass
+    #####################################
+    # METHODS THAT MODIFY THE MODEL SET #
+    #####################################
 
-    def __len__(self):
-        return len(self.set)
-
-    def exclude(self, **kwargs):
-        pass
+    def filter(self, **kwargs):
+        clone = self._clone()
+        if not clone._filters:
+            clone._filters = {}
+        clone._filters.update(kwargs)
+        return clone
 
     def order_by(self, *field):
         pass
 
-    def __reversed__(self):
-        pass
-
-    def using(self, db):
+    def exclude(self, **kwargs):
         pass
 
     def count(self):
         pass
 
     def create(self, **kwargs):
-        pass
+        instance = self.model_class(**kwargs)
+        instance.save()
+        return instance
 
     def get(self, **kwargs):
         pass
@@ -138,7 +136,34 @@ class ModelSet(Set):
     def exists(self):
         pass
 
-# Errors
+    ###################
+    # PRIVATE METHODS #
+    ###################
+
+    def _get_item_with_id(self, id):
+        key = self.model_class._key[id]
+        if self.db.exists(key):
+            kwargs = self.db.hgetall(key)
+            instance = self.model_class(**kwargs)
+            instance._id = str(id)
+            return instance
+        else:
+            return None
+
+    def _build_key_from_filter_item(self, index, value):
+        return self.model_class._key[index][_encode_key(value)]
+
+    def _clone(self):
+        klass = self.__class__
+        c = klass(self.model_class)
+        if self._filters:
+            c._filters = self._filters
+        return c
+
+
+##########
+# ERRORS #
+##########
 class ValidationError(StandardError):
     pass
 
@@ -148,7 +173,6 @@ class MissingID(StandardError):
 class AttributeNotIndexed(StandardError):
     pass
 
-# Model
 class Attribute(object):
     def __init__(self,
                  name=None,

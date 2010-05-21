@@ -85,6 +85,18 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual('1', persons[0].id)
         self.assertEqual(3, len(persons))
 
+        persons = Person.objects.filter(first_name="Clark")
+        self.assertEqual(1, len(persons))
+    
+    def test_iter(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Granny", last_name="Kent")
+
+        for person in Person.objects.all():
+            self.assertTrue(person.full_name() in ("Granny Goose",
+                "Clark Kent", "Granny Mommy", "Granny Kent",))
 
     def test_all(self):
         person1 = Person(first_name="Granny", last_name="Goose")
