@@ -220,6 +220,14 @@ class ModelSet(Set):
                 if att in kattributes:
                     kwargs[att] = (kattributes[att]
                             .typecast_for_read(value))
+
+            # load lists
+            latts = self.model_class._lists
+            for li in latts:
+                rl = List(key[li])
+                kwargs[li] = rl.members
+
+            # create new instance
             instance = self.model_class(**kwargs)
             instance._id = str(id)
             return instance
@@ -292,6 +300,33 @@ class IntegerField(Attribute):
     def value_type(self):
         return int
 
+
+class ListField(object):
+    def __init__(self, target_type,
+                 name=None,
+                 indexed=True,
+                 required=False):
+        self._target_type = target_type
+        self.name = None
+        self.indexed = indexed
+
+    def __get__(self, instance, owner):
+        try:
+            return getattr(instance, '_' + self.name)
+        except AttributeError:
+            return None
+
+    def __set__(self, instance, value):
+        setattr(instance, '_' + self.name, value)
+
+    def value_type(self):
+        return self._target_type
+
+
+##############################
+# Model Class Initialization #
+##############################
+
 def _initialize_attributes(model_class, name, bases, attrs):
     """Initialize the attributes of the model."""
     model_class._attributes = {}
@@ -300,10 +335,19 @@ def _initialize_attributes(model_class, name, bases, attrs):
             model_class._attributes[k] = v
             v.name = v.name or k
 
+def _initialize_lists(model_class, name, bases, attrs):
+    model_class._lists = {}
+    for k, v in attrs.iteritems():
+        if isinstance(v, ListField):
+            model_class._lists[k] = v
+            v.name = v.name or k
+
 def _initialize_indices(model_class, name, bases, attrs):
     model_class._indices = []
     for k, v in attrs.iteritems():
         if isinstance(v, Attribute) and v.indexed:
+            model_class._indices.append(k)
+        elif isinstance(v, ListField) and v.indexed:
             model_class._indices.append(k)
 
     if model_class._meta['indices']:
@@ -340,6 +384,7 @@ class ModelBase(type):
         super(ModelBase, cls).__init__(name, bases, attrs)
         cls._meta = ModelOptions(attrs.pop('Meta', None))
         _initialize_attributes(cls, name, bases, attrs)
+        _initialize_lists(cls, name, bases, attrs)
         _initialize_indices(cls, name, bases, attrs)
         _initialize_key(cls, name)
         _initialize_db(cls)
@@ -350,6 +395,9 @@ class Model(object):
 
     def __init__(self, **kwargs):
         for att in self.attributes.values():
+            if att.name in kwargs:
+                att.__set__(self, kwargs[att.name])
+        for att in self.lists.values():
             if att.name in kwargs:
                 att.__set__(self, kwargs[att.name])
 
@@ -366,14 +414,25 @@ class Model(object):
         self._create_membership()
         self._update_indices()
         h = {}
+        # attributes
         for k, v in self.attributes.iteritems():
             h[k] = v.typecast_for_storage(getattr(self, k))
+        # indices
         for index in self.indices:
-            v = getattr(self, index)
-            if callable(v):
-                v = v()
-            h[index] = str(v)
+            if index not in self.lists and index not in self.attributes:
+                v = getattr(self, index)
+                if callable(v):
+                    v = v()
+                h[index] = str(v)
         self.db.hmset(self.key(), h)
+
+        # lists
+        for k, v in self.lists.iteritems():
+            l = List(self.key()[k])
+            l.clear()
+            values = getattr(self, k)
+            if values:
+                l.extend(values)
 
     def _initialize_id(self):
         self.id = str(self.db.incr(self._key['id']))
@@ -395,16 +454,28 @@ class Model(object):
         self._add_to_indices()
 
     def _add_to_indices(self):
-        s = Set(self.key()['_indices'])
-        pipe = s.db.pipeline()
+        """
+        Adds the base64 encoded values of the indices.
+        """
+        pipe = self.db.pipeline()
         for att in self.indices:
             self._add_to_index(att, pipe=pipe)
         pipe.execute()
 
     def _add_to_index(self, att, val=None, pipe=None):
-        index = self._index_key_for(att, val)
-        pipe.sadd(index, self.id)
-        pipe.sadd(self.key()['_indices'], index)
+        """
+        Adds the id to the index.
+
+        This also adds to the _indices set of the object.
+        """
+        index = self._index_key_for(att)
+        if isinstance(index, list):
+            for i in index:
+                pipe.sadd(i, self.id)
+                pipe.sadd(self.key()['_indices'], i)
+        else:
+            pipe.sadd(index, self.id)
+            pipe.sadd(self.key()['_indices'], index)
 
     def _delete_from_indices(self):
         s = Set(self.key()['_indices'])
@@ -430,6 +501,11 @@ class Model(object):
         return dict(cls._attributes)
 
     @property
+    def lists(cls):
+        """Return the lists of the model."""
+        return dict(cls._lists)
+
+    @property
     def indices(cls):
         return cls._indices
 
@@ -442,7 +518,11 @@ class Model(object):
             value = getattr(self, att)
             if callable(value):
                 value = value()
-        return self._key[att][_encode_key(str(value))]
+        if att not in self.lists:
+            return self._key[att][_encode_key(str(value))]
+        else:
+            l = getattr(self, att)
+            return [self._key[att][_encode_key(str(e))] for e in l]
 
     def is_new(self):
         return not hasattr(self, '_id')

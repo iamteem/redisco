@@ -163,3 +163,30 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual(1998, chars[0].n)
         self.assertEqual("A", chars[0].m)
 
+    def test_list_field(self):
+        class Cake(models.Model):
+            name = models.Attribute()
+            ingredients = models.ListField(str)
+            sizes = models.ListField(int)
+
+        Cake.objects.create(name="StrCake",
+                            ingredients=['strawberry', 'sugar', 'dough'])
+        cake = Cake.objects.all()[0]
+        self.assertEqual(['strawberry', 'sugar', 'dough'],
+                cake.ingredients)
+
+    def test_reference_field(self):
+        return
+        class Word(models.Model):
+            pass
+
+        class Character(models.Model):
+            n = models.IntegerField()
+            m = models.Attribute()
+            word = models.ReferenceField(Word)
+
+        word = Word.objects.create()
+        a = Character.objects.create(n=32, m='a', word=word)
+        b = Character.objects.create(n=33, m='b', word=word)
+        c = Character.objects.create(n=34, m='c', word=word)
+
