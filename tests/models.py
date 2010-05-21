@@ -148,3 +148,18 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual("Richard", res[0].first_name)
         self.assertEqual("Richard", res[1].first_name)
         self.assertEqual("Zeddicus", res[2].first_name)
+
+    def test_integer_field(self):
+        class Character(models.Model):
+            n = models.IntegerField()
+            m = models.Attribute()
+
+        Character.objects.create(n=1998, m="A")
+        Character.objects.create(n=3100, m="b")
+        Character.objects.create(n=1, m="C")
+
+        chars = Character.objects.all()
+        self.assertEqual(3, len(chars))
+        self.assertEqual(1998, chars[0].n)
+        self.assertEqual("A", chars[0].m)
+

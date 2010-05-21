@@ -215,6 +215,11 @@ class ModelSet(Set):
         key = self.model_class._key[id]
         if self.db.exists(key):
             kwargs = self.db.hgetall(key)
+            kattributes = self.model_class._attributes
+            for att, value in kwargs.iteritems():
+                if att in kattributes:
+                    kwargs[att] = (kattributes[att]
+                            .typecast_for_read(value))
             instance = self.model_class(**kwargs)
             instance._id = str(id)
             return instance
@@ -271,7 +276,21 @@ class Attribute(object):
 
     def typecast_for_storage(self, value):
         return str(value)
+    
+    def value_type(self):
+        return str
 
+class IntegerField(Attribute):
+    def typecast_for_read(self, value):
+        return int(value)
+
+    def typecast_for_storage(self, value):
+        if value is None:
+            return "0"
+        return str(value)
+
+    def value_type(self):
+        return int
 
 def _initialize_attributes(model_class, name, bases, attrs):
     """Initialize the attributes of the model."""
@@ -325,7 +344,6 @@ class ModelBase(type):
         _initialize_key(cls, name)
         _initialize_db(cls)
         _initialize_manager(cls)
-
 
 class Model(object):
     __metaclass__ = ModelBase
@@ -423,8 +441,8 @@ class Model(object):
         if value is None:
             value = getattr(self, att)
             if callable(value):
-                value = str(value())
-        return self._key[att][_encode_key(value)]
+                value = value()
+        return self._key[att][_encode_key(str(value))]
 
     def is_new(self):
         return not hasattr(self, '_id')
