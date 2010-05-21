@@ -1,6 +1,6 @@
 import base64
 from connection import _get_client
-from containers import Set
+from containers import Set, List
 from key import Key
 from utils import DictWithDefault
 
@@ -38,6 +38,8 @@ class Manager(object):
     def get_by_id(self, id):
         return self.get_model_set().get_by_id(id)
 
+    def order(self, field):
+        return self.get_model_set().order(field)
 
 # Model Set
 class ModelSet(Set):
@@ -46,6 +48,7 @@ class ModelSet(Set):
         self.db = model_class._db
         self.key = model_class._key['all']
         self._filters = {}
+        self._ordering = []
 
     #################
     # MAGIC METHODS #
@@ -83,6 +86,7 @@ class ModelSet(Set):
 
     @property
     def set(self):
+        self.db.type(self.key)
         s = Set(self.key)
         if self._filters:
             indices = []
@@ -96,14 +100,31 @@ class ModelSet(Set):
             new_set_key = "~%s" % ("+".join([self.key] + indices),)
             s.intersection(new_set_key, *[Set(n) for n in indices])
             s = Set(new_set_key)
+        if self._ordering:
+            old_set_key = s.key
+            for ordering in self._ordering:
+                if ordering.startswith('-'):
+                    desc = True
+                    ordering = ordering.lstrip('-')
+                else:
+                    desc = False
+                new_set_key = "%s#%s" % (old_set_key, ordering)
+                by = "%s->%s" % (self.model_class._key['*'], ordering)
+                self.db.sort(old_set_key,
+                             by=by,
+                             store=new_set_key,
+                             alpha=True,
+                             desc=desc)
+                s = List(new_set_key)
         return s
 
     @property
     def members(self):
-        return set(map(lambda id: self._get_item_with_id(id), self.set.members))
+        return map(lambda id: self._get_item_with_id(id), self.set.members)
 
     def get_by_id(self, id):
         return self._get_item_with_id(id)
+
 
     #####################################
     # METHODS THAT MODIFY THE MODEL SET #
@@ -116,8 +137,13 @@ class ModelSet(Set):
         clone._filters.update(kwargs)
         return clone
 
-    def order_by(self, *field):
-        pass
+    # this should only be called once
+    def order(self, field):
+        clone = self._clone()
+        if not clone._ordering:
+            clone._ordering = []
+        clone._ordering.append(field)
+        return clone
 
     def exclude(self, **kwargs):
         pass
@@ -135,6 +161,9 @@ class ModelSet(Set):
 
     def exists(self):
         pass
+
+    def all(self):
+        return self._clone()
 
     ###################
     # PRIVATE METHODS #
@@ -158,6 +187,8 @@ class ModelSet(Set):
         c = klass(self.model_class)
         if self._filters:
             c._filters = self._filters
+        if self._ordering:
+            c._ordering = self._ordering
         return c
 
 
@@ -275,6 +306,11 @@ class Model(object):
         h = {}
         for k, v in self.attributes.iteritems():
             h[k] = v.typecast_for_storage(getattr(self, k))
+        for index in self.indices:
+            v = getattr(self, index)
+            if callable(v):
+                v = v()
+            h[index] = str(v)
         self.db.hmset(self.key(), h)
 
     def _initialize_id(self):

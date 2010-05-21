@@ -87,6 +87,12 @@ class ModelTestCase(unittest.TestCase):
 
         persons = Person.objects.filter(first_name="Clark")
         self.assertEqual(1, len(persons))
+
+        # by index
+        persons = Person.objects.filter(full_name="Granny Mommy")
+        self.assertEqual(1, len(persons))
+        self.assertEqual("Granny Mommy", persons[0].full_name())
+
     
     def test_iter(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
@@ -98,6 +104,25 @@ class ModelTestCase(unittest.TestCase):
             self.assertTrue(person.full_name() in ("Granny Goose",
                 "Clark Kent", "Granny Mommy", "Granny Kent",))
 
+    def test_sort(self):
+        Person.objects.create(first_name="Zeddicus", last_name="Zorander")
+        Person.objects.create(first_name="Richard", last_name="Cypher")
+        Person.objects.create(first_name="Richard", last_name="Rahl")
+        Person.objects.create(first_name="Kahlan", last_name="Amnell")
+
+        res = Person.objects.order('first_name').all()
+        self.assertEqual("Kahlan", res[0].first_name)
+        self.assertEqual("Richard", res[1].first_name)
+        self.assertEqual("Richard", res[2].first_name)
+        self.assertEqual("Zeddicus Zorander", res[3].full_name())
+
+        res = Person.objects.order('-full_name').all()
+        self.assertEqual("Zeddicus Zorander", res[0].full_name())
+        self.assertEqual("Richard Rahl", res[1].full_name())
+        self.assertEqual("Richard Cypher", res[2].full_name())
+        self.assertEqual("Kahlan Amnell", res[3].full_name())
+
+
     def test_all(self):
         person1 = Person(first_name="Granny", last_name="Goose")
         person1.save()
@@ -105,5 +130,5 @@ class ModelTestCase(unittest.TestCase):
         person2.save()
 
         all = Person.objects.all()
-        self.assertEqual(set([person1, person2]), all.members)
+        self.assertEqual(set([person1, person2]), set(all.members))
 
