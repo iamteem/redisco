@@ -469,6 +469,8 @@ class Model(object):
         This also adds to the _indices set of the object.
         """
         index = self._index_key_for(att)
+        if index is None or not index:
+            return
         if isinstance(index, list):
             for i in index:
                 pipe.sadd(i, self.id)
@@ -519,10 +521,16 @@ class Model(object):
             if callable(value):
                 value = value()
         if att not in self.lists:
-            return self._key[att][_encode_key(str(value))]
+            if value is not None:
+                return self._key[att][_encode_key(str(value))]
+            else:
+                return None
         else:
             l = getattr(self, att)
-            return [self._key[att][_encode_key(str(e))] for e in l]
+            if l:
+                return [self._key[att][_encode_key(str(e))] for e in l]
+            else:
+                return None
 
     def is_new(self):
         return not hasattr(self, '_id')

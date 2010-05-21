@@ -171,9 +171,15 @@ class ModelTestCase(unittest.TestCase):
 
         Cake.objects.create(name="StrCake",
                             ingredients=['strawberry', 'sugar', 'dough'])
+        Cake.objects.create(name="Normal Cake",
+                            ingredients=['sugar', 'dough'])
+        Cake.objects.create(name="No Sugar Cake",
+                            ingredients=['dough'])
         cake = Cake.objects.all()[0]
         self.assertEqual(['strawberry', 'sugar', 'dough'],
                 cake.ingredients)
+        with_sugar = Cake.objects.filter(ingredients='sugar')
+        self.assertTrue(2, len(with_sugar))
 
     def test_reference_field(self):
         return
