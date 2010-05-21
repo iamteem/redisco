@@ -19,9 +19,10 @@ class ManagerDescriptor(object):
 class Manager(object):
     def __init__(self, model_class):
         self.model_class = model_class
+        self._filters = {}
 
     def get_model_set(self):
-        return ModelSet(self.model_class)
+        return ModelSet(self.model_class, filters=self._filters)
 
     def all(self):
         return self.get_model_set()
@@ -29,42 +30,89 @@ class Manager(object):
     def __getitem__(self, idx):
         return self.get_model_set()[idx]
 
+    def create(self, **kwargs):
+        instance = self.model_class(**kwargs)
+        instance.save()
+        return instance
+
+    def filter(self, **kwargs):
+        self._filters.update(kwargs)
+        return self.get_model_set()
+
+    def get_by_id(self, id):
+        return self.get_model_set()._get_item_with_id(id)
+
+
 # Model Set
 class ModelSet(Set):
-    def __init__(self, model_class):
+    def __init__(self, model_class, filters=None):
         self.model_class = model_class
         self.db = model_class._db
         self.key = model_class._key['all']
+        self._filters = filters
 
     def __getitem__(self, index):
-        key = self.model_class._key[index]
+        l = list(self.set)
+        try:
+            return self._get_item_with_id(l[int(index)])
+        except IndexError:
+            return None
+
+    def __repr__(self):
+        return self.members
+
+    def __str__(self):
+        return "<ModelSet %s>" % self.model_class.__name__
+
+    def _get_item_with_id(self, id):
+        key = self.model_class._key[id]
         if self.db.exists(key):
             kwargs = self.db.hgetall(key)
             instance = self.model_class(**kwargs)
-            instance._id = str(index)
+            instance._id = str(id)
             return instance
         else:
             return None
 
     @property
     def set(self):
-        return Set(self.key)
+        s = Set(self.key)
+        if self._filters:
+            indices = []
+            for k, v in self._filters.iteritems():
+                index = self._build_key_from_filter_item(k, v)
+                if k not in self.model_class._indices:
+                    raise AttributeNotIndexed(
+                            "Attribute %s is not indexed in %s class." %
+                            (k, self.model_class.__name__))
+                indices.append(index)
+            new_set_key = "~%s" % ("+".join([self.key] + indices),)
+            s.intersection(new_set_key, *[Set(n) for n in indices])
+            s = Set(new_set_key)
+        return s
+
+    def filter(self, **kwargs):
+        if not self._filters:
+            self._filters = {}
+        self._filters.update(kwargs)
+        return self
+
+
+    def _build_key_from_filter_item(self, index, value):
+        return self.model_class._key[index][_encode_key(value)]
 
     @property
     def members(self):
-        return set(map(lambda id: self[id], self.set.members))
+        return set(map(lambda id: self._get_item_with_id(id), self.set.members))
 
     def __iter__(self):
-        pass
+        return iter(self.set)
 
     def __repr__(self):
         pass
 
     def __len__(self):
-        pass
-
-    def filter(self, **kwargs):
-        pass
+        return len(self.set)
 
     def exclude(self, **kwargs):
         pass
@@ -97,12 +145,18 @@ class ValidationError(StandardError):
 class MissingID(StandardError):
     pass
 
+class AttributeNotIndexed(StandardError):
+    pass
 
 # Model
 class Attribute(object):
-    def __init__(self, name=None, indexed=True):
+    def __init__(self,
+                 name=None,
+                 indexed=True,
+                 required=False):
         self.name = name
-        self.indexed = True
+        self.indexed = indexed
+        self.required = required
 
     def __get__(self, instance, owner):
         try:
@@ -146,6 +200,8 @@ def _initialize_db(model_class):
 def _initialize_manager(model_class):
     model_class.objects = ManagerDescriptor(Manager(model_class))
 
+def _encode_key(s):
+    return base64.b64encode(s).replace("\n", "")
 
 class ModelOptions(object):
     def __init__(self, meta):
@@ -191,6 +247,7 @@ class Model(object):
         if self.is_new():
             self._initialize_id()
         self._create_membership()
+        self._update_indices()
         h = {}
         for k, v in self.attributes.iteritems():
             h[k] = v.typecast_for_storage(getattr(self, k))
@@ -212,8 +269,8 @@ class Model(object):
         Set(self._key['all']).remove(self.id)
 
     def _update_indices(self):
-        self.delete_from_indices()
-        self.add_to_indices()
+        self._delete_from_indices()
+        self._add_to_indices()
 
     def _add_to_indices(self):
         s = Set(self.key()['_indices'])
@@ -261,9 +318,9 @@ class Model(object):
     def _index_key_for(self, att, value=None):
         if value is None:
             value = getattr(self, att)
-        def encode(s):
-            return base64.b64encode(s).replace("\n", "")
-        return self._key[att][encode(value)]
+            if callable(value):
+                value = str(value())
+        return self._key[att][_encode_key(value)]
 
     def is_new(self):
         return not hasattr(self, '_id')
