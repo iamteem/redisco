@@ -49,13 +49,15 @@ class ModelSet(Set):
         self.key = model_class._key['all']
         self._filters = {}
         self._ordering = []
+        self._limit = None
+        self._offset = None
 
     #################
     # MAGIC METHODS #
     #################
 
     def __getitem__(self, index):
-        l = list(self.set)
+        l = list(self._set)
         try:
             return self._get_item_with_id(l[int(index)])
         except IndexError:
@@ -78,49 +80,15 @@ class ModelSet(Set):
         pass
 
     def __len__(self):
-        return len(self.set)
+        return len(self._set)
 
     ##########################################
     # METHODS THAT RETURN A SET OF INSTANCES #
     ##########################################
 
     @property
-    def set(self):
-        self.db.type(self.key)
-        s = Set(self.key)
-        if self._filters:
-            indices = []
-            for k, v in self._filters.iteritems():
-                index = self._build_key_from_filter_item(k, v)
-                if k not in self.model_class._indices:
-                    raise AttributeNotIndexed(
-                            "Attribute %s is not indexed in %s class." %
-                            (k, self.model_class.__name__))
-                indices.append(index)
-            new_set_key = "~%s" % ("+".join([self.key] + indices),)
-            s.intersection(new_set_key, *[Set(n) for n in indices])
-            s = Set(new_set_key)
-        if self._ordering:
-            old_set_key = s.key
-            for ordering in self._ordering:
-                if ordering.startswith('-'):
-                    desc = True
-                    ordering = ordering.lstrip('-')
-                else:
-                    desc = False
-                new_set_key = "%s#%s" % (old_set_key, ordering)
-                by = "%s->%s" % (self.model_class._key['*'], ordering)
-                self.db.sort(old_set_key,
-                             by=by,
-                             store=new_set_key,
-                             alpha=True,
-                             desc=desc)
-                s = List(new_set_key)
-        return s
-
-    @property
     def members(self):
-        return map(lambda id: self._get_item_with_id(id), self.set.members)
+        return map(lambda id: self._get_item_with_id(id), self._set.members)
 
     def get_by_id(self, id):
         return self._get_item_with_id(id)
@@ -143,6 +111,12 @@ class ModelSet(Set):
         if not clone._ordering:
             clone._ordering = []
         clone._ordering.append(field)
+        return clone
+
+    def limit(self, n, offset=0):
+        clone = self._clone()
+        clone._limit = n
+        clone._offset = offset
         return clone
 
     def exclude(self, **kwargs):
@@ -169,6 +143,74 @@ class ModelSet(Set):
     # PRIVATE METHODS #
     ###################
 
+    @property
+    def _set(self):
+        s = Set(self.key)
+        if self._filters:
+            s = self._add_set_filter(s)
+        s = self._order(s.key)
+        return s
+
+    def _add_set_filter(self, s):
+        indices = []
+        for k, v in self._filters.iteritems():
+            index = self._build_key_from_filter_item(k, v)
+            if k not in self.model_class._indices:
+                raise AttributeNotIndexed(
+                        "Attribute %s is not indexed in %s class." %
+                        (k, self.model_class.__name__))
+            indices.append(index)
+        new_set_key = "~%s" % ("+".join([self.key] + indices),)
+        s.intersection(new_set_key, *[Set(n) for n in indices])
+        return Set(new_set_key)
+
+    def _order(self, skey):
+        if self._ordering:
+            return self._set_with_ordering(skey)
+        else:
+            return self._set_without_ordering(skey)
+
+    def _set_with_ordering(self, skey):
+        num, start = self._get_limit_and_offset()
+        old_set_key = skey
+        for ordering in self._ordering:
+            if ordering.startswith('-'):
+                desc = True
+                ordering = ordering.lstrip('-')
+            else:
+                desc = False
+            new_set_key = "%s#%s" % (old_set_key, ordering)
+            by = "%s->%s" % (self.model_class._key['*'], ordering)
+            self.db.sort(old_set_key,
+                         by=by,
+                         store=new_set_key,
+                         alpha=True,
+                         start=start,
+                         num=num,
+                         desc=desc)
+            return List(new_set_key)
+
+    def _set_without_ordering(self, skey):
+        # sort by id
+        num, start = self._get_limit_and_offset()
+        old_set_key = skey
+        new_set_key = "%s#" % old_set_key
+        self.db.sort(old_set_key,
+                     store=new_set_key,
+                     start=start,
+                     num=num)
+        return List(new_set_key)
+
+    def _get_limit_and_offset(self):
+        if (self._limit is not None and self._offset is None) or \
+                (self._limit is None and self._offset is not None):
+                    raise "Limit and offset must be specified"
+
+        if self._limit is None:
+            return (None, None)
+        else:
+            return (self._limit, self._offset)
+
     def _get_item_with_id(self, id):
         key = self.model_class._key[id]
         if self.db.exists(key):
@@ -189,6 +231,8 @@ class ModelSet(Set):
             c._filters = self._filters
         if self._ordering:
             c._ordering = self._ordering
+        c._limit = self._limit
+        c._offset = self._offset
         return c
 
 

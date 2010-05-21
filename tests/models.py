@@ -122,7 +122,6 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual("Richard Cypher", res[2].full_name())
         self.assertEqual("Kahlan Amnell", res[3].full_name())
 
-
     def test_all(self):
         person1 = Person(first_name="Granny", last_name="Goose")
         person1.save()
@@ -132,3 +131,20 @@ class ModelTestCase(unittest.TestCase):
         all = Person.objects.all()
         self.assertEqual(set([person1, person2]), set(all.members))
 
+    def test_limit(self):
+        Person.objects.create(first_name="Zeddicus", last_name="Zorander")
+        Person.objects.create(first_name="Richard", last_name="Cypher")
+        Person.objects.create(first_name="Richard", last_name="Rahl")
+        Person.objects.create(first_name="Kahlan", last_name="Amnell")
+
+        res = Person.objects.order('first_name').all().limit(3)
+        self.assertEqual(3, len(res))
+        self.assertEqual("Kahlan", res[0].first_name)
+        self.assertEqual("Richard", res[1].first_name)
+        self.assertEqual("Richard", res[2].first_name)
+
+        res = Person.objects.order('first_name').limit(3, offset=1)
+        self.assertEqual(3, len(res))
+        self.assertEqual("Richard", res[0].first_name)
+        self.assertEqual("Richard", res[1].first_name)
+        self.assertEqual("Zeddicus", res[2].first_name)
