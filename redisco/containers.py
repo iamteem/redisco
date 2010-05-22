@@ -263,7 +263,7 @@ class SortedSet(Container):
         if isinstance(index, slice):
             return self.db.zrange(self.key, index.start, index.stop)
         else:
-            return self.db.zrange(self.key, index, index)
+            return self.db.zrange(self.key, index, index)[0]
 
     def score(self, member):
         return self.db.zscore(self.key, member)
@@ -271,43 +271,45 @@ class SortedSet(Container):
     def __len__(self):
         return self.db.zcard(self.key)
 
+    @property
     def _min_score(self):
-        return self.db.zscore(self.__getitem__(0))
+        return self.db.zscore(self.key, self.__getitem__(0))
 
+    @property
     def _max_score(self):
-        return self.db.zscore(self.__getitem__(-1))
+        return self.db.zscore(self.key, self.__getitem__(-1))
 
     def lt(self, v, limit=None, offset=None):
-        if limit is not None:
-            if offset is None:
-                offset = 0
+        if limit is not None and offset is None:
+            offset = 0
         return self.db.zrangebyscore(self.key, self._min_score, "(%f" % v,
                 start=offset, num=limit)
 
     def le(self, v, limit=None, offset=None):
-        if limit is not None:
-            if offset is None:
-                offset = 0
+        if limit is not None and offset is None:
+            offset = 0
         return self.db.zrangebyscore(self.key, self._min_score, v,
                 start=offset, num=limit)
 
     def gt(self, v, limit=None, offset=None):
-        if limit is not None:
-            if offset is None:
-                offset = 0
+        if limit is not None and offset is None:
+            offset = 0
         return self.db.zrangebyscore(self.key, "(%f" % v, self._max_score,
                 start=offset, num=limit)
 
     def ge(self, v, limit=None, offset=None):
-        if limit is not None:
-            if offset is None:
-                offset = 0
+        if limit is not None and offset is None:
+            offset = 0
         return self.db.zrangebyscore(self.key, "(%f" % v, self._max_score,
                 start=offset, num=limit)
 
     def between(self, min, max, limit=None, offset=None):
-        if limit is not None:
-            if offset is None:
-                offset = 0
+        if limit is not None and offset is None:
+            offset = 0
         return self.db.zrangebyscore(self.key, min, max,
                 start=offset, num=limit)
+
+    def eq(self, value):
+        return self.db.zrangebyscore(self.key, value, value)
+
+

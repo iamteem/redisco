@@ -224,4 +224,8 @@ class SortedSetTestCase(unittest.TestCase):
         self.assertEqual(3, zorted.rank("4"))
         self.assertEqual(["6", "3", "1", "4"], zorted.le(35))
 
+        zorted.add("7", 35)
+        self.assertEqual(["4", "7"], zorted.eq(35))
+        self.assertEqual(["6", "3", "1"], zorted.lt(30))
+        self.assertEqual(["4", "7", "2", "5"], zorted.gt(30))
 

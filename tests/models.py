@@ -237,4 +237,6 @@ class ModelTestCase(unittest.TestCase):
 
         exams = Exam.objects.order('score')
         self.assertEqual([9, 33, 75, 95, 99,], [exam.score for exam in exams])
-
+        filtered = Exam.objects.zfilter(score__lt=96).zfilter(score__gt=10)
+        self.assertEqual(3, len(filtered))
+        self.assertEqual(3, len(filtered))

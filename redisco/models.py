@@ -2,7 +2,7 @@ import time
 import base64
 from datetime import datetime
 from connection import _get_client
-from containers import Set, List
+from containers import Set, List, SortedSet
 from key import Key
 
 ############
@@ -43,6 +43,10 @@ class Manager(object):
     def order(self, field):
         return self.get_model_set().order(field)
 
+    def zfilter(self, **kwargs):
+        return self.get_model_set().zfilter(**kwargs)
+
+
 # Model Set
 class ModelSet(Set):
     def __init__(self, model_class):
@@ -50,6 +54,7 @@ class ModelSet(Set):
         self.db = model_class._db
         self.key = model_class._key['all']
         self._filters = {}
+        self._zfilters = []
         self._ordering = []
         self._limit = None
         self._offset = None
@@ -111,6 +116,13 @@ class ModelSet(Set):
         clone._filters.update(kwargs)
         return clone
 
+    def zfilter(self, **kwargs):
+        clone = self._clone()
+        if not clone._zfilters:
+            clone._zfilters = []
+        clone._zfilters.append(kwargs)
+        return clone
+
     # this should only be called once
     def order(self, field):
         fname = field.lstrip('-')
@@ -161,6 +173,8 @@ class ModelSet(Set):
         s = Set(self.key)
         if self._filters:
             s = self._add_set_filter(s)
+        if self._zfilters:
+            s = self._add_zfilters(s)
         s = self._order(s.key)
         return s
 
@@ -176,6 +190,41 @@ class ModelSet(Set):
         new_set_key = "~%s" % ("+".join([self.key] + indices),)
         s.intersection(new_set_key, *[Set(n) for n in indices])
         return Set(new_set_key)
+
+    def _add_zfilters(self, s):
+        qualified = s.members
+        print self._zfilters
+        for f in self._zfilters:
+            for k, v in f.iteritems():
+                try:
+                    att, op = k.split('__')
+                except ValueError:
+                    att, op = k, 'eq'
+                index = self.model_class._key[att]
+                zset = SortedSet(index)
+                r = set()
+                if op == 'eq':
+                    r = set(zset.eq(v))
+                elif op == 'lt':
+                    r = set(zset.lt(v))
+                elif op == 'gt':
+                    r = set(zset.gt(v))
+                elif op == 'gte':
+                    r = set(zset.ge(v))
+                elif op == 'lte':
+                    r = set(zset.le(v))
+                qualified.intersection_update(r)
+        # write to a new set
+        f_keys = []
+        for h in self._zfilters:
+            f_keys.extend(h.keys())
+        new_key = "~" + '!z!'.join([s.key] + f_keys)
+        s = Set(new_key)
+        s.db.delete(new_key)
+        for m in qualified:
+            s.add(m)
+        return s
+
 
     def _order(self, skey):
         if self._ordering:
@@ -255,6 +304,8 @@ class ModelSet(Set):
         c = klass(self.model_class)
         if self._filters:
             c._filters = self._filters
+        if self._zfilters:
+            c._zfilters = self._zfilters
         if self._ordering:
             c._ordering = self._ordering
         c._limit = self._limit
@@ -579,22 +630,32 @@ class Model(object):
         This also adds to the _indices set of the object.
         """
         index = self._index_key_for(att)
-        if index is None or not index:
+        if index is None:
             return
-        if isinstance(index, list):
+        t, index = index
+        if t == 'attribute':
+            pipe.sadd(index, self.id)
+            pipe.sadd(self.key()['_indices'], index)
+        elif t == 'list':
             for i in index:
                 pipe.sadd(i, self.id)
                 pipe.sadd(self.key()['_indices'], i)
-        else:
-            pipe.sadd(index, self.id)
-            pipe.sadd(self.key()['_indices'], index)
+        elif t == 'sortedset':
+            descriptor = self.attributes[att]
+            score = descriptor.typecast_for_storage(getattr(self, att))
+            pipe.zadd(index, self.id, score)
+            pipe.sadd(self.key()['_zindices'], index)
 
     def _delete_from_indices(self):
         s = Set(self.key()['_indices'])
+        z = Set(self.key()['_zindices'])
         pipe = s.db.pipeline()
         for index in s.members:
             pipe.srem(index, self.id)
+        for index in z.members:
+            pipe.srem(index, self.id)
         pipe.delete(s.key)
+        pipe.delete(z.key)
         pipe.execute()
 
     @property
@@ -636,13 +697,23 @@ class Model(object):
                 value = value()
         if att not in self.lists:
             if value is not None:
-                return self._key[att][_encode_key(str(value))]
+                try:
+                    descriptor = self.attributes[att]
+                    if isinstance(descriptor, IntegerField) or \
+                            isinstance(descriptor, DateTimeField):
+                        # Person:age
+                        return ('sortedset', self._key[att])
+                    else:
+                        # Person:name:something
+                        return ('attribute', self._key[att][_encode_key(str(value))])
+                except KeyError:
+                    return ('attribute', self._key[att][_encode_key(str(value))])
             else:
                 return None
         else:
             l = getattr(self, att)
             if l:
-                return [self._key[att][_encode_key(str(e))] for e in l]
+                return ('list', [self._key[att][_encode_key(str(e))] for e in l])
             else:
                 return None
 
