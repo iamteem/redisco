@@ -205,3 +205,16 @@ class ModelTestCase(unittest.TestCase):
         self.assertTrue(d not in word.character_set)
         self.assertEqual(3, len(word.character_set))
 
+    def test_datetime_field(self):
+        from datetime import datetime
+        n = datetime.now()
+        class Post(models.Model):
+            title = models.Attribute()
+            date_posted = models.DateTimeField()
+            created_at = models.DateTimeField(auto_now_add=True)
+        post = Post(title="First!", date_posted=n)
+        post.save()
+        post = Post.objects.get_by_id(post.id)
+        self.assertEqual(n, post.date_posted)
+        assert post.created_at
+

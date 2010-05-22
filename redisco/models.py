@@ -1,11 +1,12 @@
 import base64
+from datetime import datetime
 from connection import _get_client
 from containers import Set, List
 from key import Key
-from utils import DictWithDefault
 
-
-# Managers
+############
+# Managers #
+############
 
 class ManagerDescriptor(object):
     def __init__(self, manager):
@@ -305,6 +306,32 @@ class IntegerField(Attribute):
         return int
 
 
+class DateTimeField(Attribute):
+
+    def __init__(self, auto_now=False, auto_now_add=False, **kwargs):
+        super(DateTimeField, self).__init__(**kwargs)
+        self.auto_now = auto_now
+        self.auto_now_add = auto_now_add
+
+    def typecast_for_read(self, value):
+        try:
+            da = value.split('.')
+            if len(da) == 1:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+            else:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S.%f')
+        except TypeError, ValueError:
+            return None
+
+    def typecast_for_storage(self, value):
+        if not isinstance(value, datetime):
+            raise TypeError("%s should be datetime object, and not a %s" %
+                    (self.name, type(value)))
+        if value is None:
+            return None
+        return str(value)
+
+
 class ListField(object):
     def __init__(self, target_type,
                  name=None,
@@ -391,7 +418,7 @@ def _initialize_referenced(model_class, attribute):
 
     related_name = (attribute.related_name or
             model_class.__name__.lower() + '_set')
-    setattr(attribute._target_type, related_name, 
+    setattr(attribute._target_type, related_name,
             property(_related_objects))
 
 def _initialize_lists(model_class, name, bases, attrs):
@@ -481,13 +508,19 @@ class Model(object):
         pass
 
     def save(self):
-        if self.is_new():
+        _new = self.is_new()
+        if _new:
             self._initialize_id()
         self._create_membership()
         self._update_indices()
         h = {}
         # attributes
         for k, v in self.attributes.iteritems():
+            if isinstance(v, DateTimeField):
+                if v.auto_now:
+                    setattr(self, k, datetime.now())
+                if v.auto_now_add and _new:
+                    setattr(self, k, datetime.now())
             h[k] = v.typecast_for_storage(getattr(self, k))
         # indices
         for index in self.indices:
