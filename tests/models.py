@@ -182,17 +182,23 @@ class ModelTestCase(unittest.TestCase):
         self.assertTrue(2, len(with_sugar))
 
     def test_reference_field(self):
-        return
         class Word(models.Model):
-            pass
+            placeholder = models.Attribute()
 
         class Character(models.Model):
             n = models.IntegerField()
             m = models.Attribute()
             word = models.ReferenceField(Word)
 
-        word = Word.objects.create()
+        Word.objects.create()
+        word = Word.objects.all()[0]
         a = Character.objects.create(n=32, m='a', word=word)
         b = Character.objects.create(n=33, m='b', word=word)
         c = Character.objects.create(n=34, m='c', word=word)
+
+        self.assertEqual(1, len(Word.objects.all()))
+        self.assertEqual(3, len(Character.objects.all()))
+        for char in Character.objects.all():
+            self.assertEqual(word, char.word)
+
 

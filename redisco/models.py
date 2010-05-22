@@ -307,7 +307,7 @@ class ListField(object):
                  indexed=True,
                  required=False):
         self._target_type = target_type
-        self.name = None
+        self.name = name
         self.indexed = indexed
 
     def __get__(self, instance, owner):
@@ -321,6 +321,42 @@ class ListField(object):
 
     def value_type(self):
         return self._target_type
+
+class ReferenceField(object):
+    def __init__(self,
+                 target_type,
+                 name=None,
+                 attname=None,
+                 indexed=True,
+                 required=True):
+        self._target_type = target_type
+        self.name = name
+        self.indexed = indexed
+        self.required = required
+        self._attname = attname
+
+    def __set__(self, instance, value):
+        if not isinstance(value, self._target_type) and \
+                value is not None:
+            raise TypeError
+        setattr(instance, self.attname, value.id)
+
+    def __get__(self, instance, owner):
+        try:
+            if not hasattr(self, '_' + self.name):
+                o = self._target_type.objects.get_by_id(
+                                    getattr(instance, self.attname))
+                setattr(self, '_' + self.name, o)
+            return getattr(self, '_' + self.name)
+        except AttributeError:
+            return None
+
+    def value_type(self):
+        return self._target_type
+
+    @property
+    def attname(self):
+        return self._attname or self.name + '_id'
 
 
 ##############################
@@ -341,6 +377,18 @@ def _initialize_lists(model_class, name, bases, attrs):
         if isinstance(v, ListField):
             model_class._lists[k] = v
             v.name = v.name or k
+
+def _initialize_references(model_class, name, bases, attrs):
+    model_class._references = {}
+    h = {}
+    for k, v in attrs.iteritems():
+        if isinstance(v, ReferenceField):
+            model_class._references[k] = v
+            v.name = v.name or k
+            att = Attribute(name=v.attname)
+            h[v.attname] = att
+            setattr(model_class, v.attname, att)
+    attrs.update(h)
 
 def _initialize_indices(model_class, name, bases, attrs):
     model_class._indices = []
@@ -383,6 +431,7 @@ class ModelBase(type):
     def __init__(cls, name, bases, attrs):
         super(ModelBase, cls).__init__(name, bases, attrs)
         cls._meta = ModelOptions(attrs.pop('Meta', None))
+        _initialize_references(cls, name, bases, attrs)
         _initialize_attributes(cls, name, bases, attrs)
         _initialize_lists(cls, name, bases, attrs)
         _initialize_indices(cls, name, bases, attrs)
@@ -394,10 +443,9 @@ class Model(object):
     __metaclass__ = ModelBase
 
     def __init__(self, **kwargs):
-        for att in self.attributes.values():
-            if att.name in kwargs:
-                att.__set__(self, kwargs[att.name])
-        for att in self.lists.values():
+        attrs = self.attributes.values() + self.lists.values() \
+                + self.references.values()
+        for att in attrs:
             if att.name in kwargs:
                 att.__set__(self, kwargs[att.name])
 
@@ -424,7 +472,8 @@ class Model(object):
                 if callable(v):
                     v = v()
                 h[index] = str(v)
-        self.db.hmset(self.key(), h)
+        if h:
+            self.db.hmset(self.key(), h)
 
         # lists
         for k, v in self.lists.iteritems():
@@ -510,6 +559,10 @@ class Model(object):
     @property
     def indices(cls):
         return cls._indices
+
+    @property
+    def references(cls):
+        return cls._references
 
     @property
     def db(cls):
