@@ -1,3 +1,4 @@
+import time
 import base64
 from datetime import datetime
 from connection import _get_client
@@ -322,11 +323,7 @@ class DateTimeField(Attribute):
 
     def typecast_for_read(self, value):
         try:
-            da = value.split('.')
-            if len(da) == 1:
-                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
-            else:
-                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S.%f')
+            return datetime.fromtimestamp(float(value))
         except TypeError, ValueError:
             return None
 
@@ -336,7 +333,7 @@ class DateTimeField(Attribute):
                     (self.name, type(value)))
         if value is None:
             return None
-        return str(value)
+        return "%d.%d" % (time.mktime(value.timetuple()),  value.microsecond)
 
 
 class ListField(object):

@@ -207,7 +207,7 @@ class ModelTestCase(unittest.TestCase):
 
     def test_datetime_field(self):
         from datetime import datetime
-        n = datetime.now()
+        n = datetime(2009, 12, 31)
         class Post(models.Model):
             title = models.Attribute()
             date_posted = models.DateTimeField()
