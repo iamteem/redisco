@@ -1,5 +1,5 @@
 import unittest
-from containers import SetTestCase, ListTestCase
+from containers import SetTestCase, ListTestCase, SortedSetTestCase
 from models import ModelTestCase
 from redisco.connection import connect
 

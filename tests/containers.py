@@ -186,7 +186,6 @@ class ListTestCase(unittest.TestCase):
         alpha[0] = 'A'
         self.assertEqual(['A'], alpha.all())
 
-
         # iter
         alpha.push('B')
         for e, a in zip(alpha, ['A', 'B']):
@@ -200,3 +199,29 @@ class ListTestCase(unittest.TestCase):
 
         alpha.reverse()
         self.assertEqual(['E', 'D', 'C', 'B', 'A'], list(alpha))
+
+
+class SortedSetTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = _get_client()
+        self.client.flushdb()
+
+    def tearDown(self):
+        self.client.flushdb()
+
+    def test_everything(self):
+        zorted = cont.SortedSet("Person:age")
+        zorted.add("1", 29)
+        zorted.add("2", 39)
+        zorted.add("3", '15')
+        zorted.add("4", 35)
+        zorted.add("5", 98)
+        zorted.add("6", 5)
+        self.assertEqual(6, len(zorted))
+        self.assertEqual(35, zorted.score("4"))
+        self.assertEqual(0, zorted.rank("6"))
+        self.assertEqual(5, zorted.revrank("6"))
+        self.assertEqual(3, zorted.rank("4"))
+        self.assertEqual(["6", "3", "1", "4"], zorted.le(35))
+
+
