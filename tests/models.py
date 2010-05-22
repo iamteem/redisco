@@ -239,4 +239,36 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual([9, 33, 75, 95, 99,], [exam.score for exam in exams])
         filtered = Exam.objects.zfilter(score__lt=96).zfilter(score__gt=10)
         self.assertEqual(3, len(filtered))
+        filtered = Exam.objects.zfilter(score__lt=96).zfilter(score__gt=10)
         self.assertEqual(3, len(filtered))
+
+    def test_filter_date(self):
+        from datetime import datetime
+
+        class Post(models.Model):
+            name = models.Attribute()
+            date = models.DateTimeField()
+
+        dates = (
+            datetime(2010, 1, 20, 1, 40, 0),
+            datetime(2010, 2, 20, 1, 40, 0),
+            datetime(2010, 1, 26, 1, 40, 0),
+            datetime(2009, 12, 21, 1, 40, 0),
+            datetime(2010, 1, 10, 1, 40, 0),
+            datetime(2010, 5, 20, 1, 40, 0),
+        )
+
+        i = 0
+        for date in dates:
+            Post.objects.create(name="Post#%d" % i, date=date)
+            i += 1
+
+        self.assertEqual([Post.objects.get_by_id(4)],
+                list(Post.objects.zfilter(date=
+                    datetime(2009, 12, 21, 1, 40, 0))))
+
+        lt = (0, 2, 3, 4)
+        res = [Post.objects.get_by_id(l + 1) for l in lt]
+        self.assertEqual(set(res),
+                set(Post.objects.zfilter(
+                    date__lt=datetime(2010, 1, 30))))

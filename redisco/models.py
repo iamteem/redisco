@@ -201,6 +201,8 @@ class ModelSet(Set):
                 except ValueError:
                     att, op = k, 'eq'
                 index = self.model_class._key[att]
+                desc = self.model_class._attributes[att]
+                v = float(desc.typecast_for_storage(v))
                 zset = SortedSet(index)
                 r = set()
                 if op == 'eq':
