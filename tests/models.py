@@ -218,3 +218,23 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual(n, post.date_posted)
         assert post.created_at
 
+    def test_sort_by_int(self):
+        class Exam(models.Model):
+            score = models.IntegerField()
+            total_score = models.IntegerField()
+
+            def percent(self):
+                return int((float(self.score) / self.total_score) * 100)
+
+            class Meta:
+                indices = ('percent',)
+
+        Exam.objects.create(score=9, total_score=100)
+        Exam.objects.create(score=99, total_score=100)
+        Exam.objects.create(score=75, total_score=100)
+        Exam.objects.create(score=33, total_score=100)
+        Exam.objects.create(score=95, total_score=100)
+
+        exams = Exam.objects.order('score')
+        self.assertEqual([9, 33, 75, 95, 99,], [exam.score for exam in exams])
+

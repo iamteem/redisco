@@ -112,10 +112,17 @@ class ModelSet(Set):
 
     # this should only be called once
     def order(self, field):
+        fname = field.lstrip('-')
+        if fname not in self.model_class._indices:
+            raise ValueError("Order parameter should be an indexed attribute.")
+        alpha = True
+        if fname in self.model_class._attributes:
+            v = self.model_class._attributes[fname]
+            alpha = not isinstance(v, IntegerField)
         clone = self._clone()
         if not clone._ordering:
             clone._ordering = []
-        clone._ordering.append(field)
+        clone._ordering.append((field, alpha,))
         return clone
 
     def limit(self, n, offset=0):
@@ -178,7 +185,7 @@ class ModelSet(Set):
     def _set_with_ordering(self, skey):
         num, start = self._get_limit_and_offset()
         old_set_key = skey
-        for ordering in self._ordering:
+        for ordering, alpha in self._ordering:
             if ordering.startswith('-'):
                 desc = True
                 ordering = ordering.lstrip('-')
@@ -189,7 +196,7 @@ class ModelSet(Set):
             self.db.sort(old_set_key,
                          by=by,
                          store=new_set_key,
-                         alpha=True,
+                         alpha=alpha,
                          start=start,
                          num=num,
                          desc=desc)
