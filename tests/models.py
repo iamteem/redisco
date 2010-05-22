@@ -192,13 +192,16 @@ class ModelTestCase(unittest.TestCase):
 
         Word.objects.create()
         word = Word.objects.all()[0]
-        a = Character.objects.create(n=32, m='a', word=word)
-        b = Character.objects.create(n=33, m='b', word=word)
-        c = Character.objects.create(n=34, m='c', word=word)
-
-        self.assertEqual(1, len(Word.objects.all()))
-        self.assertEqual(3, len(Character.objects.all()))
+        Character.objects.create(n=32, m='a', word=word)
+        Character.objects.create(n=33, m='b', word=word)
+        Character.objects.create(n=34, m='c', word=word)
+        Character.objects.create(n=34, m='d')
         for char in Character.objects.all():
             self.assertEqual(word, char.word)
-
+        a, b, c, d = list(Character.objects.all())
+        self.assertTrue(a in word.character_set)
+        self.assertTrue(b in word.character_set)
+        self.assertTrue(c in word.character_set)
+        self.assertTrue(d not in word.character_set)
+        self.assertEqual(3, len(word.character_set))
 

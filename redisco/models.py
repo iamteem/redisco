@@ -82,6 +82,10 @@ class ModelSet(Set):
     def __len__(self):
         return len(self._set)
 
+    def __contains__(self, val):
+        return val in self.members
+
+
     ##########################################
     # METHODS THAT RETURN A SET OF INSTANCES #
     ##########################################
@@ -328,12 +332,14 @@ class ReferenceField(object):
                  name=None,
                  attname=None,
                  indexed=True,
-                 required=True):
+                 required=True,
+                 related_name=None):
         self._target_type = target_type
         self.name = name
         self.indexed = indexed
         self.required = required
         self._attname = attname
+        self._related_name = related_name
 
     def __set__(self, instance, value):
         if not isinstance(value, self._target_type) and \
@@ -356,7 +362,13 @@ class ReferenceField(object):
 
     @property
     def attname(self):
-        return self._attname or self.name + '_id'
+        if self._attname is None:
+            self._attname = self.name + '_id'
+        return self._attname
+
+    @property
+    def related_name(self):
+        return self._related_name 
 
 
 ##############################
@@ -370,6 +382,17 @@ def _initialize_attributes(model_class, name, bases, attrs):
         if isinstance(v, Attribute):
             model_class._attributes[k] = v
             v.name = v.name or k
+
+def _initialize_referenced(model_class, attribute):
+    # this should be a descriptor
+    def _related_objects(self):
+        return (model_class.objects
+                .filter(**{attribute.attname: self.id}))
+
+    related_name = (attribute.related_name or
+            model_class.__name__.lower() + '_set')
+    setattr(attribute._target_type, related_name, 
+            property(_related_objects))
 
 def _initialize_lists(model_class, name, bases, attrs):
     model_class._lists = {}
@@ -388,6 +411,7 @@ def _initialize_references(model_class, name, bases, attrs):
             att = Attribute(name=v.attname)
             h[v.attname] = att
             setattr(model_class, v.attname, att)
+            _initialize_referenced(model_class, v)
     attrs.update(h)
 
 def _initialize_indices(model_class, name, bases, attrs):
