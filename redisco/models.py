@@ -193,7 +193,6 @@ class ModelSet(Set):
 
     def _add_zfilters(self, s):
         qualified = s.members
-        print self._zfilters
         for f in self._zfilters:
             for k, v in f.iteritems():
                 try:
