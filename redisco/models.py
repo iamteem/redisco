@@ -683,10 +683,13 @@ class Model(object):
                 pipe.sadd(i, self.id)
                 pipe.sadd(self.key()['_indices'], i)
         elif t == 'sortedset':
+            zindex, index = index
+            pipe.sadd(index, self.id)
+            pipe.sadd(self.key()['_indices'], index)
             descriptor = self.attributes[att]
             score = descriptor.typecast_for_storage(getattr(self, att))
-            pipe.zadd(index, self.id, score)
-            pipe.sadd(self.key()['_zindices'], index)
+            pipe.zadd(zindex, self.id, score)
+            pipe.sadd(self.key()['_zindices'], zindex)
 
 
     def _delete_from_indices(self):
@@ -713,7 +716,7 @@ class Model(object):
                 descriptor = self.attributes[att]
                 if isinstance(descriptor, IntegerField) or \
                         isinstance(descriptor, DateTimeField):
-                    return ('sortedset', self._key[att])
+                    return self._tuple_for_index_key_attr_zset(att, value)
                 else:
                     return self._tuple_for_index_key_attr_val(att, value)
             except KeyError:
@@ -726,6 +729,10 @@ class Model(object):
 
     def _tuple_for_index_key_attr_list(self, att, val):
         return ('list', [self._index_key_for_attr_val(att, e) for e in val])
+
+    def _tuple_for_index_key_attr_zset(self, att, val):
+        return ('sortedset',
+                (self._key[att], self._index_key_for_attr_val(att, val)))
 
     def _index_key_for_attr_val(self, att, val):
         return self._key[att][_encode_key(str(val))]
