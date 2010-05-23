@@ -129,7 +129,7 @@ class ModelTestCase(unittest.TestCase):
         person2.save()
 
         all = Person.objects.all()
-        self.assertEqual(set([person1, person2]), set(all.members))
+        self.assertEqual(list([person1, person2]), list(all))
 
     def test_limit(self):
         Person.objects.create(first_name="Zeddicus", last_name="Zorander")

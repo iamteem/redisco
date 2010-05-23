@@ -18,6 +18,7 @@ class ManagerDescriptor(object):
             raise AttributeError
         return self.manager
 
+
 class Manager(object):
     def __init__(self, model_class):
         self.model_class = model_class
@@ -27,9 +28,6 @@ class Manager(object):
 
     def all(self):
         return self.get_model_set()
-
-    def __getitem__(self, idx):
-        return self.get_model_set()[idx]
 
     def create(self, **kwargs):
         return self.get_model_set().create(**kwargs)
@@ -45,6 +43,7 @@ class Manager(object):
 
     def zfilter(self, **kwargs):
         return self.get_model_set().zfilter(**kwargs)
+
 
 # Model Set
 class ModelSet(Set):
@@ -63,46 +62,33 @@ class ModelSet(Set):
     #################
 
     def __getitem__(self, index):
-        l = list(self._set)
-        try:
-            return self._get_item_with_id(l[int(index)])
-        except IndexError:
-            return None
+        if isinstance(index, slice):
+            return self.limit(slice.start, slice.stop)
+        else:
+            return self.get_by_id(self._set[index])
 
     def __repr__(self):
-        return self.members
+        return "<ModelSet %s>" % self.model_class.__name__
 
     def __str__(self):
         return "<ModelSet %s>" % self.model_class.__name__
 
-    def __reversed__(self):
-        pass
-
     def __iter__(self):
-        for m in self.members:
-            yield m
-
-    def __repr__(self):
-        pass
+        for id in self._set.members:
+            yield self._get_item_with_id(id)
 
     def __len__(self):
         return len(self._set)
 
     def __contains__(self, val):
-        return val in self.members
-
+        return val.id in self._set.members
 
     ##########################################
     # METHODS THAT RETURN A SET OF INSTANCES #
     ##########################################
 
-    @property
-    def members(self):
-        return map(lambda id: self._get_item_with_id(id), self._set.members)
-
     def get_by_id(self, id):
         return self._get_item_with_id(id)
-
 
     #####################################
     # METHODS THAT MODIFY THE MODEL SET #
@@ -510,6 +496,7 @@ def _initialize_manager(model_class):
 def _encode_key(s):
     return base64.b64encode(s).replace("\n", "")
 
+
 class ModelOptions(object):
     def __init__(self, meta):
         self.meta = meta
@@ -535,6 +522,7 @@ class ModelBase(type):
         _initialize_key(cls, name)
         _initialize_db(cls)
         _initialize_manager(cls)
+
 
 class Model(object):
     __metaclass__ = ModelBase
