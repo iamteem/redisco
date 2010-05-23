@@ -170,16 +170,21 @@ class ModelTestCase(unittest.TestCase):
             sizes = models.ListField(int)
 
         Cake.objects.create(name="StrCake",
-                            ingredients=['strawberry', 'sugar', 'dough'])
+                            ingredients=['strawberry', 'sugar', 'dough'],
+                            sizes=[1, 2, 5])
         Cake.objects.create(name="Normal Cake",
-                            ingredients=['sugar', 'dough'])
+                            ingredients=['sugar', 'dough'],
+                            sizes=[1, 3, 5])
         Cake.objects.create(name="No Sugar Cake",
-                            ingredients=['dough'])
+                            ingredients=['dough'],
+                            sizes=[])
         cake = Cake.objects.all()[0]
         self.assertEqual(['strawberry', 'sugar', 'dough'],
                 cake.ingredients)
         with_sugar = Cake.objects.filter(ingredients='sugar')
         self.assertTrue(2, len(with_sugar))
+        self.assertEqual([1, 2, 5], with_sugar[0].sizes)
+        self.assertEqual([1, 3, 5], with_sugar[1].sizes)
 
     def test_reference_field(self):
         class Word(models.Model):

@@ -46,7 +46,6 @@ class Manager(object):
     def zfilter(self, **kwargs):
         return self.get_model_set().zfilter(**kwargs)
 
-
 # Model Set
 class ModelSet(Set):
     def __init__(self, model_class):
@@ -275,27 +274,9 @@ class ModelSet(Set):
             return (self._limit, self._offset)
 
     def _get_item_with_id(self, id):
-        key = self.model_class._key[id]
-        if self.db.exists(key):
-            kwargs = self.db.hgetall(key)
-            kattributes = self.model_class._attributes
-            for att, value in kwargs.iteritems():
-                if att in kattributes:
-                    kwargs[att] = (kattributes[att]
-                            .typecast_for_read(value))
-
-            # load lists
-            latts = self.model_class._lists
-            for li in latts:
-                rl = List(key[li])
-                kwargs[li] = rl.members
-
-            # create new instance
-            instance = self.model_class(**kwargs)
-            instance._id = str(id)
-            return instance
-        else:
-            return None
+        instance = self.model_class()
+        instance._id = str(id)
+        return instance
 
     def _build_key_from_filter_item(self, index, value):
         return self.model_class._key[index][_encode_key(value)]
@@ -339,7 +320,11 @@ class Attribute(object):
         try:
             return getattr(instance, '_' + self.name)
         except AttributeError:
-            return None
+            val = instance.db.hget(instance.key(), self.name)
+            if val is not None:
+                val = self.typecast_for_read(val)
+            self.__set__(instance, val)
+            return val
 
     def __set__(self, instance, value):
         setattr(instance, '_' + self.name, value)
@@ -401,7 +386,12 @@ class ListField(object):
         try:
             return getattr(instance, '_' + self.name)
         except AttributeError:
-            return None
+            key = instance.key()[self.name]
+            val = List(key).members
+            if val is not None:
+                val = [self.value_type()(v) for v in val]
+            self.__set__(instance, val)
+            return val
 
     def __set__(self, instance, value):
         setattr(instance, '_' + self.name, value)
@@ -550,11 +540,7 @@ class Model(object):
     __metaclass__ = ModelBase
 
     def __init__(self, **kwargs):
-        attrs = self.attributes.values() + self.lists.values() \
-                + self.references.values()
-        for att in attrs:
-            if att.name in kwargs:
-                att.__set__(self, kwargs[att.name])
+        self.update_attributes(**kwargs)
 
     def clean_fields(self):
         pass
@@ -562,6 +548,13 @@ class Model(object):
     def clean(self):
         """Override this. in the model"""
         pass
+
+    def update_attributes(self, **kwargs):
+        attrs = self.attributes.values() + self.lists.values() \
+                + self.references.values()
+        for att in attrs:
+            if att.name in kwargs:
+                att.__set__(self, kwargs[att.name])
 
     def save(self):
         _new = self.is_new()
