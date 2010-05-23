@@ -186,6 +186,9 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual([1, 2, 5], with_sugar[0].sizes)
         self.assertEqual([1, 3, 5], with_sugar[1].sizes)
 
+        size1 = Cake.objects.filter(sizes=str(2))
+        self.assertEqual(1, len(size1))
+
     def test_reference_field(self):
         class Word(models.Model):
             placeholder = models.Attribute()

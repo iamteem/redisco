@@ -550,13 +550,96 @@ class Model(object):
         pass
 
     def update_attributes(self, **kwargs):
+        """Updates the attributes of the model."""
         attrs = self.attributes.values() + self.lists.values() \
                 + self.references.values()
         for att in attrs:
             if att.name in kwargs:
                 att.__set__(self, kwargs[att.name])
 
+    # TODO: Add validation
     def save(self):
+        """Saves the instance to the datastore."""
+        self._write()
+        return True
+
+    def key(self):
+        """Returns the Redis key where the values are stored."""
+        return self._key[self.id]
+
+    def delete(self):
+        """Deletes the object from the datastore."""
+        self._delete_from_indices()
+        self._delete_membership()
+        del self.db[self.key()]
+
+    def is_new(self):
+        """Returns True if the instance is new.
+
+        Newness is based on the presence of the _id attribute.
+        """
+        return not hasattr(self, '_id')
+
+    @property
+    def id(self):
+        """Returns the id of the instance.
+
+        Raises MissingID if the instance is new.
+        """
+        if not hasattr(self, '_id'):
+            raise MissingID
+        return self._id
+
+    @id.setter
+    def id(self, val):
+        """Returns the id of the instance as a string."""
+        self._id = str(val)
+
+    @property
+    def attributes(cls):
+        """Return the attributes of the model.
+
+        Returns a dict with models attribute name as keys
+        and attribute descriptors as values.
+        """
+        return dict(cls._attributes)
+
+    @property
+    def lists(cls):
+        """Return the lists of the model.
+
+        Returns a dict with models attribute name as keys
+        and ListField descriptors as values.
+        """
+        return dict(cls._lists)
+
+    @property
+    def indices(cls):
+        """Return a list of the indices of the model."""
+        return cls._indices
+
+    @property
+    def references(cls):
+        return cls._references
+
+    @property
+    def db(cls):
+        return cls._db
+
+    ###################
+    # Private methods #
+    ###################
+
+    def _initialize_id(self):
+        """Initializes the id of the instance."""
+        self.id = str(self.db.incr(self._key['id']))
+
+    def _write(self):
+        """Writes the values of the attributes to the datastore.
+
+        This method also creates the indices and saves the lists
+        associated to the object.
+        """
         _new = self.is_new()
         if _new:
             self._initialize_id()
@@ -589,14 +672,9 @@ class Model(object):
             if values:
                 l.extend(values)
 
-    def _initialize_id(self):
-        self.id = str(self.db.incr(self._key['id']))
-
-    def key(self):
-        return self._key[self.id]
-
-    def delete(self):
-        del self.db[self.key()]
+    ##############
+    # Membership #
+    ##############
 
     def _create_membership(self):
         Set(self._key['all']).add(self.id)
@@ -604,14 +682,17 @@ class Model(object):
     def _delete_membership(self):
         Set(self._key['all']).remove(self.id)
 
+
+    ############
+    # INDICES! #
+    ############
+
     def _update_indices(self):
         self._delete_from_indices()
         self._add_to_indices()
 
     def _add_to_indices(self):
-        """
-        Adds the base64 encoded values of the indices.
-        """
+        """Adds the base64 encoded values of the indices."""
         pipe = self.db.pipeline()
         for att in self.indices:
             self._add_to_index(att, pipe=pipe)
@@ -640,6 +721,7 @@ class Model(object):
             pipe.zadd(index, self.id, score)
             pipe.sadd(self.key()['_zindices'], index)
 
+
     def _delete_from_indices(self):
         s = Set(self.key()['_indices'])
         z = Set(self.key()['_zindices'])
@@ -652,67 +734,39 @@ class Model(object):
         pipe.delete(z.key)
         pipe.execute()
 
-    @property
-    def id(self):
-        if not hasattr(self, '_id'):
-            raise MissingID
-        return self._id
-
-    @id.setter
-    def id(self, val):
-        self._id = str(val)
-
-    @property
-    def attributes(cls):
-        """Return the attributes of the model."""
-        return dict(cls._attributes)
-
-    @property
-    def lists(cls):
-        """Return the lists of the model."""
-        return dict(cls._lists)
-
-    @property
-    def indices(cls):
-        return cls._indices
-
-    @property
-    def references(cls):
-        return cls._references
-
-    @property
-    def db(cls):
-        return cls._db
-
     def _index_key_for(self, att, value=None):
         if value is None:
             value = getattr(self, att)
             if callable(value):
                 value = value()
+        if value is None:
+            return None
         if att not in self.lists:
-            if value is not None:
-                try:
-                    descriptor = self.attributes[att]
-                    if isinstance(descriptor, IntegerField) or \
-                            isinstance(descriptor, DateTimeField):
-                        # Person:age
-                        return ('sortedset', self._key[att])
-                    else:
-                        # Person:name:something
-                        return ('attribute', self._key[att][_encode_key(str(value))])
-                except KeyError:
-                    return ('attribute', self._key[att][_encode_key(str(value))])
-            else:
-                return None
+            try:
+                descriptor = self.attributes[att]
+                if isinstance(descriptor, IntegerField) or \
+                        isinstance(descriptor, DateTimeField):
+                    return ('sortedset', self._key[att])
+                else:
+                    return self._tuple_for_index_key_attr_val(att, value)
+            except KeyError:
+                return self._tuple_for_index_key_attr_val(att, value)
         else:
-            l = getattr(self, att)
-            if l:
-                return ('list', [self._key[att][_encode_key(str(e))] for e in l])
-            else:
-                return None
+            return self._tuple_for_index_key_attr_list(att, value)
 
-    def is_new(self):
-        return not hasattr(self, '_id')
+    def _tuple_for_index_key_attr_val(self, att, val):
+        return ('attribute', self._index_key_for_attr_val(att, val))
+
+    def _tuple_for_index_key_attr_list(self, att, val):
+        return ('list', [self._index_key_for_attr_val(att, e) for e in val])
+
+    def _index_key_for_attr_val(self, att, val):
+        return self._key[att][_encode_key(str(val))]
+
+
+    ##################
+    # Python methods #
+    ##################
 
     def __hash__(self):
         return hash(self.key())
