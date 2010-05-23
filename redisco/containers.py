@@ -313,3 +313,19 @@ class SortedSet(Container):
         return self.db.zrangebyscore(self.key, value, value)
 
 
+class NonPersistentSet(object):
+
+    def __init__(self, s):
+        self._set = s
+
+    @property
+    def members(self):
+        return self._set
+
+    def __iter__(self):
+        m = self.members
+        for e in m:
+            yield e
+
+    def __len__(self):
+        return len(self._set)

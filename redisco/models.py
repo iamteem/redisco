@@ -2,7 +2,7 @@ import time
 import base64
 from datetime import datetime
 from connection import _get_client
-from containers import Set, List, SortedSet
+from containers import Set, List, SortedSet, NonPersistentSet
 from key import Key
 
 ############
@@ -129,22 +129,10 @@ class ModelSet(Set):
         clone._offset = offset
         return clone
 
-    def exclude(self, **kwargs):
-        pass
-
-    def count(self):
-        pass
-
     def create(self, **kwargs):
         instance = self.model_class(**kwargs)
         instance.save()
         return instance
-
-    def get(self, **kwargs):
-        pass
-
-    def exists(self):
-        pass
 
     def all(self):
         return self._clone()
@@ -159,9 +147,9 @@ class ModelSet(Set):
         if self._filters:
             s = self._add_set_filter(s)
         if self._zfilters:
-            s = self._add_zfilters(s)
-        s = self._order(s.key)
-        return s
+            return NonPersistentSet(self._add_zfilters(s))
+        else:
+            return self._order(s.key)
 
     def _add_set_filter(self, s):
         indices = []
@@ -200,16 +188,7 @@ class ModelSet(Set):
                 elif op == 'lte':
                     r = set(zset.le(v))
                 qualified.intersection_update(r)
-        # write to a new set
-        f_keys = []
-        for h in self._zfilters:
-            f_keys.extend(h.keys())
-        new_key = "~" + '!z!'.join([s.key] + f_keys)
-        s = Set(new_key)
-        s.db.delete(new_key)
-        for m in qualified:
-            s.add(m)
-        return s
+        return qualified
 
 
     def _order(self, skey):
