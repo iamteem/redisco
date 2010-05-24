@@ -281,7 +281,6 @@ class ModelTestCase(unittest.TestCase):
                 set(Post.objects.zfilter(
                     date__lt=datetime(2010, 1, 30))))
 
-
     def test_validation(self):
         class Person(models.Model):
             name = models.Attribute(required=True)
@@ -292,8 +291,7 @@ class ModelTestCase(unittest.TestCase):
         self.assertFalse(p.is_valid())
         self.assertTrue(('name', 'required') in p.errors)
 
-        # custom validator
-
+    def test_custom_validation(self):
         class Ninja(models.Model):
             def validator(age):
                 if not age or age >= 10:
