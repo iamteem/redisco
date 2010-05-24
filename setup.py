@@ -21,7 +21,7 @@ setup(name='redisco',
       packages=['redisco', 'redisco.models'],
       test_suite='tests.all_tests',
       classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 2 - Pre-Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
