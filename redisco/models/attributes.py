@@ -1,25 +1,33 @@
 import time
 from datetime import datetime
 from redisco.containers import List
+from exceptions import FieldValidationError
 
 class Attribute(object):
     def __init__(self,
                  name=None,
                  indexed=True,
-                 required=False):
+                 required=False,
+                 validator=None):
         self.name = name
         self.indexed = indexed
         self.required = required
+        self.validator = validator
 
     def __get__(self, instance, owner):
         try:
             return getattr(instance, '_' + self.name)
         except AttributeError:
-            val = instance.db.hget(instance.key(), self.name)
-            if val is not None:
-                val = self.typecast_for_read(val)
-            self.__set__(instance, val)
-            return val
+            if not instance.is_new():
+                val = instance.db.hget(instance.key(), self.name)
+                if val is not None:
+                    val = self.typecast_for_read(val)
+                self.__set__(instance, val)
+                return val
+            else:
+                self.__set__(instance, None)
+                return None
+
 
     def __set__(self, instance, value):
         setattr(instance, '_' + self.name, value)
@@ -32,6 +40,21 @@ class Attribute(object):
     
     def value_type(self):
         return str
+
+    def validate(self, instance):
+        val = getattr(instance, self.name)
+        errors = []
+        # validate first standard stuff
+        if self.required:
+            if val is None or not str(val).strip():
+                errors.append((self.name, 'required'))
+        # validate using validator
+        if self.validator:
+            r = self.validator(val)
+            if r:
+                errors.extend(r)
+        if errors:
+            raise FieldValidationError(errors)
 
 class IntegerField(Attribute):
     def typecast_for_read(self, value):
@@ -72,10 +95,13 @@ class ListField(object):
     def __init__(self, target_type,
                  name=None,
                  indexed=True,
-                 required=False):
+                 required=False,
+                 validator=None):
         self._target_type = target_type
         self.name = name
         self.indexed = indexed
+        self.required = required
+        self.validator = validator
 
     def __get__(self, instance, owner):
         try:
@@ -94,6 +120,27 @@ class ListField(object):
     def value_type(self):
         return self._target_type
 
+    def validate(self, instance):
+        val = getattr(instance, self.name)
+        errors = []
+
+        for item in val:
+            if not isinstance(item, self._target_type):
+                errors.append((self.name, 'bad type in list'))
+
+        # validate first standard stuff
+        if self.required:
+            if not val:
+                errors.append((self.name, 'required'))
+        # validate using validator
+        if self.validator:
+            r = self.validator(val)
+            if r:
+                errors.extend(r)
+        if errors:
+            raise FieldValidationError(errors)
+
+
 class ReferenceField(object):
     def __init__(self,
                  target_type,
@@ -101,13 +148,15 @@ class ReferenceField(object):
                  attname=None,
                  indexed=True,
                  required=True,
-                 related_name=None):
+                 related_name=None,
+                 validator=None):
         self._target_type = target_type
         self.name = name
         self.indexed = indexed
         self.required = required
         self._attname = attname
         self._related_name = related_name
+        self.validator = validator
 
     def __set__(self, instance, value):
         if not isinstance(value, self._target_type) and \
@@ -138,3 +187,21 @@ class ReferenceField(object):
     def related_name(self):
         return self._related_name 
 
+    def validate(self, instance):
+        val = getattr(instance, self.name)
+        errors = []
+
+        if not isinstance(val, self._target_type):
+            errors.append((self.name, 'bad type for reference'))
+
+        # validate first standard stuff
+        if self.required:
+            if not val:
+                errors.append((self.name, 'required'))
+        # validate using validator
+        if self.validator:
+            r = self.validator(val)
+            if r:
+                errors.extend(r)
+        if errors:
+            raise FieldValidationError(errors)

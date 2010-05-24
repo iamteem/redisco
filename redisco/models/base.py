@@ -5,6 +5,7 @@ from attributes import *
 from key import Key
 from managers import ManagerDescriptor, Manager
 from utils import _encode_key
+from exceptions import FieldValidationError
 
 ##############################
 # Model Class Initialization #
@@ -103,12 +104,23 @@ class Model(object):
     def __init__(self, **kwargs):
         self.update_attributes(**kwargs)
 
-    def clean_fields(self):
-        pass
+    def is_valid(self):
+        self._errors = []
+        for field in self.fields:
+            try:
+                field.validate(self)
+            except FieldValidationError, e:
+                self._errors.extend(e.errors)
+        return not bool(self._errors)
 
-    def clean(self):
-        """Override this. in the model"""
-        pass
+    @property
+    def errors(self):
+        return self._errors
+
+    @property
+    def fields(self):
+        return (self.attributes.values() + self.lists.values()
+                + self.references.values())
 
     def update_attributes(self, **kwargs):
         """Updates the attributes of the model."""
@@ -118,9 +130,10 @@ class Model(object):
             if att.name in kwargs:
                 att.__set__(self, kwargs[att.name])
 
-    # TODO: Add validation
     def save(self):
         """Saves the instance to the datastore."""
+        if not self.is_valid():
+            return False
         self._write()
         return True
 

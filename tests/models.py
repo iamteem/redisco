@@ -280,3 +280,29 @@ class ModelTestCase(unittest.TestCase):
         self.assertEqual(set(res),
                 set(Post.objects.zfilter(
                     date__lt=datetime(2010, 1, 30))))
+
+
+    def test_validation(self):
+        class Person(models.Model):
+            name = models.Attribute(required=True)
+        p = Person(name="Kokoy")
+        self.assertTrue(p.is_valid())
+
+        p = Person()
+        self.assertFalse(p.is_valid())
+        self.assertTrue(('name', 'required') in p.errors)
+
+        # custom validator
+
+        class Ninja(models.Model):
+            def validator(age):
+                if not age or age >= 10:
+                    return (('age', 'must be below 10'),)
+            age = models.IntegerField(required=True, validator=validator)
+
+        nin1 = Ninja(age=9)
+        self.assertTrue(nin1.is_valid())
+
+        nin2 = Ninja(age=10)
+        self.assertFalse(nin2.is_valid())
+        self.assertTrue(('age', 'must be below 10') in nin2.errors)
