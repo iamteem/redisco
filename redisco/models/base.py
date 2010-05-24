@@ -120,14 +120,14 @@ class Model(object):
         Do custom validation here. Add tuples to self._errors.
 
         Example:
-            
+
             class Person(Model):
                 name = Attribute(required=True)
 
                 def validate(self):
                     if name == 'Nemo':
                         self._errors.append(('name', 'cannot be Nemo'))
-        
+
         """
         pass
 
