@@ -446,6 +446,39 @@ class ListFieldTestCase(RediscoTestCase):
         author1 = Author.objects.get_by_id(1)
         self.assertEqual(2, len(author1.books))
 
+    def test_lazy_reference_field(self):
+        class User(models.Model):
+            name = models.Attribute()
+            likes = models.ListField('Link')
+
+            def likes_link(self, link):
+                if self.likes is None:
+                    self.likes = [link]
+                    self.save()
+                else:
+                    if link not in self.likes:
+                        self.likes.append(link)
+                        self.save()
+
+        class Link(models.Model):
+            url = models.Attribute()
+
+        user = User.objects.create(name="Lion King")
+        assert Link.objects.create(url="http://google.com")
+        assert Link.objects.create(url="http://yahoo.com")
+        assert Link.objects.create(url="http://github.com")
+        assert Link.objects.create(url="http://bitbucket.org")
+
+        links = Link.objects.all().limit(3)
+
+        for link in links:
+            user.likes_link(link)
+
+        user = User.objects.get_by_id(1)
+        self.assertEqual("http://google.com", user.likes[0].url)
+        self.assertEqual("http://yahoo.com", user.likes[1].url)
+        self.assertEqual("http://github.com", user.likes[2].url)
+        self.assertEqual(3, len(user.likes))
 
 
 class ReferenceFieldTestCase(RediscoTestCase):

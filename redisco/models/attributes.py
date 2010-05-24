@@ -165,14 +165,18 @@ class ListField(object):
         self.required = required
         self.validator = validator
         from base import Model
-        self._redisco_model = issubclass(target_type, Model)
+        self._redisco_model = (isinstance(target_type, basestring) or
+            issubclass(target_type, Model))
 
     def __get__(self, instance, owner):
         try:
             return getattr(instance, '_' + self.name)
         except AttributeError:
-            key = instance.key()[self.name]
-            val = List(key).members
+            if instance.is_new():
+                val = []
+            else:
+                key = instance.key()[self.name]
+                val = List(key).members
             if val is not None:
                 klass = self.value_type()
                 if self._redisco_model:
@@ -186,6 +190,12 @@ class ListField(object):
         setattr(instance, '_' + self.name, value)
 
     def value_type(self):
+        if isinstance(self._target_type, basestring):
+            t = self._target_type
+            from base import get_model_from_key
+            self._target_type = get_model_from_key(self._target_type)
+            if self._target_type is None:
+                raise ValueError("Unknown Redisco class %s" % t)
         return self._target_type
 
     def validate(self, instance):
@@ -197,7 +207,7 @@ class ListField(object):
                 errors.append((self.name, 'bad type'))
             else:
                 for item in val:
-                    if not isinstance(item, self._target_type):
+                    if not isinstance(item, self.value_type()):
                         errors.append((self.name, 'bad type in list'))
 
         # validate first standard stuff
@@ -231,7 +241,7 @@ class ReferenceField(object):
         self.validator = validator
 
     def __set__(self, instance, value):
-        if not isinstance(value, self._target_type) and \
+        if not isinstance(value, self.value_type()) and \
                 value is not None:
             raise TypeError
         setattr(instance, self.attname, value.id)
@@ -239,7 +249,7 @@ class ReferenceField(object):
     def __get__(self, instance, owner):
         try:
             if not hasattr(self, '_' + self.name):
-                o = self._target_type.objects.get_by_id(
+                o = self.value_type().objects.get_by_id(
                                     getattr(instance, self.attname))
                 setattr(self, '_' + self.name, o)
             return getattr(self, '_' + self.name)
@@ -264,7 +274,7 @@ class ReferenceField(object):
         errors = []
 
         if val:
-            if not isinstance(val, self._target_type):
+            if not isinstance(val, self.value_type()):
                 errors.append((self.name, 'bad type for reference'))
 
         # validate first standard stuff

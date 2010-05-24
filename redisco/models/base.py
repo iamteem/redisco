@@ -400,3 +400,13 @@ class Model(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
+_known_models = {}
+def get_model_from_key(key):
+    model_name = key.split(':', 2)[0]
+    global _known_models
+    # populate
+    if not _known_models:
+        for klass in Model.__subclasses__():
+            _known_models[klass.__name__] = klass
+    return _known_models.get(model_name, None)
