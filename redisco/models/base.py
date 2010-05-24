@@ -222,6 +222,16 @@ class Model(object):
         return (self.attributes.values() + self.lists.values()
                 + self.references.values())
 
+    #################
+    # Class Methods #
+    #################
+
+    @classmethod
+    def exists(cls, id):
+        return (cls._db.exists(cls._key[str(id)]) or
+                    cls._db.sismember(cls._key['all'], str(id)))
+
+
     ###################
     # Private methods #
     ###################
@@ -271,7 +281,10 @@ class Model(object):
             l.clear()
             values = getattr(self, k)
             if values:
-                l.extend(values)
+                if v._redisco_model:
+                    l.extend([item.id for item in values])
+                else:
+                    l.extend(values)
 
     ##############
     # Membership #

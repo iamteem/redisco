@@ -410,6 +410,43 @@ class ListFieldTestCase(RediscoTestCase):
         size1 = Cake.objects.filter(sizes=str(2))
         self.assertEqual(1, len(size1))
 
+    def test_list_of_reference_fields(self):
+        class Book(models.Model):
+            title = models.Attribute(required=True)
+            date_published = models.DateField(required=True)
+
+        class Author(models.Model):
+            name = models.Attribute(required=True)
+            books = models.ListField(Book)
+
+        book = Book.objects.create(
+                title="University Physics With Modern Physics",
+                date_published=date(2007, 4, 2))
+        assert book
+
+        author1 = Author.objects.create(name="Hugh Young",
+                books=[book])
+        author2 = Author.objects.create(name="Roger Freedman",
+                books=[book])
+
+        assert author1
+        assert author2
+        author1 = Author.objects.get_by_id(1)
+        author2 = Author.objects.get_by_id(2)
+        self.assertTrue(book in author1.books)
+        self.assertTrue(book in author2.books)
+
+        book = Book.objects.create(
+                title="University Physics With Modern Physics Paperback",
+                date_published=date(2007, 4, 2))
+
+        author1.books.append(book)
+        assert author1.save()
+
+        author1 = Author.objects.get_by_id(1)
+        self.assertEqual(2, len(author1.books))
+
+
 
 class ReferenceFieldTestCase(RediscoTestCase):
     def test_basic(self):

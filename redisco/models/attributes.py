@@ -164,6 +164,8 @@ class ListField(object):
         self.indexed = indexed
         self.required = required
         self.validator = validator
+        from base import Model
+        self._redisco_model = issubclass(target_type, Model)
 
     def __get__(self, instance, owner):
         try:
@@ -172,7 +174,11 @@ class ListField(object):
             key = instance.key()[self.name]
             val = List(key).members
             if val is not None:
-                val = [self.value_type()(v) for v in val]
+                klass = self.value_type()
+                if self._redisco_model:
+                    val = filter(lambda o: o is not None, [klass.objects.get_by_id(v) for v in val])
+                else:
+                    val = [klass(v) for v in val]
             self.__set__(instance, val)
             return val
 
@@ -187,9 +193,12 @@ class ListField(object):
         errors = []
 
         if val:
-            for item in val:
-                if not isinstance(item, self._target_type):
-                    errors.append((self.name, 'bad type in list'))
+            if not isinstance(val, list):
+                errors.append((self.name, 'bad type'))
+            else:
+                for item in val:
+                    if not isinstance(item, self._target_type):
+                        errors.append((self.name, 'bad type in list'))
 
         # validate first standard stuff
         if self.required:
