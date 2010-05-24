@@ -9,7 +9,7 @@ from exceptions import FieldValidationError, MissingID
 
 __all__ = ['Model']
 
-ZINDEXABLE = (IntegerField, DateTimeField, DateField)
+ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)
 
 
 ##############################

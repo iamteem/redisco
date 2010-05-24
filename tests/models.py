@@ -326,6 +326,7 @@ class ModelTestCase(RediscoTestCase):
         self.assertTrue(('age', 'must be below 10') in nin2.errors)
 
 
+
 class Event(models.Model):
     name = models.Attribute(required=True)
     date = models.DateField(required=True)
@@ -375,3 +376,21 @@ class DateFieldTestCase(RediscoTestCase):
         self.assertTrue(isinstance(r.created_on, date))
         self.assertTrue(isinstance(r.updated_on, date))
         self.assertEqual(date.today(), r.created_on)
+
+
+class Student(models.Model):
+    name = models.Attribute(required=True)
+    average = models.FloatField(required=True)
+
+class FloatFieldTestCase(RediscoTestCase):
+    def test_attribute(self):
+        s = Student(name="Richard Cypher", average=86.4)
+        self.assertEqual(86.4, s.average)
+
+    def test_saved_attribute(self):
+        s = Student.objects.create(name="Richard Cypher",
+                      average=3.14159)
+        assert s
+        student = Student.objects.get_by_id(s.id)
+        assert student
+        self.assertEqual(3.14159, student.average)

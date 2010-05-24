@@ -2,7 +2,7 @@ import unittest
 from redisco.connection import connect
 connect(host='localhost', port=6380, db=10)
 from containers import SetTestCase, ListTestCase, SortedSetTestCase
-from models import ModelTestCase, DateFieldTestCase
+from models import ModelTestCase, DateFieldTestCase, FloatFieldTestCase
 
 def all_tests():
     suite = unittest.TestSuite()
@@ -11,4 +11,5 @@ def all_tests():
     suite.addTest(unittest.makeSuite(SortedSetTestCase))
     suite.addTest(unittest.makeSuite(ModelTestCase))
     suite.addTest(unittest.makeSuite(DateFieldTestCase))
+    suite.addTest(unittest.makeSuite(FloatFieldTestCase))
     return suite

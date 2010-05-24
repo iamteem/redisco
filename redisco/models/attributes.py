@@ -4,7 +4,8 @@ from redisco.containers import List
 from exceptions import FieldValidationError
 
 __all__ = ['Attribute', 'ListField', 'DateTimeField',
-        'DateField', 'ReferenceField', 'IntegerField']
+        'DateField', 'ReferenceField', 'IntegerField',
+        'FloatField']
 
 class Attribute(object):
     def __init__(self,
@@ -74,6 +75,18 @@ class IntegerField(Attribute):
     def value_type(self):
         return int
 
+
+class FloatField(Attribute):
+    def typecast_for_read(self, value):
+        return float(value)
+
+    def typecast_for_storage(self, value):
+        if value is None:
+            return "0"
+        return str(value)
+
+    def value_type(self):
+        return float
 
 class DateTimeField(Attribute):
 
