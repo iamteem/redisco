@@ -5,7 +5,8 @@ from exceptions import FieldValidationError
 
 __all__ = ['Attribute', 'ListField', 'DateTimeField',
         'DateField', 'ReferenceField', 'IntegerField',
-        'FloatField']
+        'FloatField', 'ZINDEXABLE']
+
 
 class Attribute(object):
     def __init__(self,
@@ -254,3 +255,5 @@ class ReferenceField(object):
                 errors.extend(r)
         if errors:
             raise FieldValidationError(errors)
+
+ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)

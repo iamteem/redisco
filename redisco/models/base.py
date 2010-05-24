@@ -9,8 +9,6 @@ from exceptions import FieldValidationError, MissingID
 
 __all__ = ['Model']
 
-ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)
-
 
 ##############################
 # Model Class Initialization #

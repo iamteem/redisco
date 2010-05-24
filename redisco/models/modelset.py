@@ -2,7 +2,7 @@ from attributes import IntegerField, DateTimeField
 from redisco.containers import SortedSet, Set, List, NonPersistentList
 from exceptions import AttributeNotIndexed
 from utils import _encode_key
-
+from attributes import ZINDEXABLE
 
 # Model Set
 class ModelSet(Set):
@@ -75,7 +75,7 @@ class ModelSet(Set):
         alpha = True
         if fname in self.model_class._attributes:
             v = self.model_class._attributes[fname]
-            alpha = not isinstance(v, (IntegerField, DateTimeField))
+            alpha = not isinstance(v, ZINDEXABLE)
         clone = self._clone()
         if not clone._ordering:
             clone._ordering = []

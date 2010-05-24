@@ -394,3 +394,13 @@ class FloatFieldTestCase(RediscoTestCase):
         student = Student.objects.get_by_id(s.id)
         assert student
         self.assertEqual(3.14159, student.average)
+
+    def test_indexing(self):
+        Student.objects.create(name="Richard Cypher", average=3.14159)
+        Student.objects.create(name="Kahlan Amnell", average=92.45)
+        Student.objects.create(name="Zeddicus Zorander", average=99.99)
+        Student.objects.create(name="Cara", average=84.91)
+        good = Student.objects.zfilter(average__gt=50.0)
+        self.assertEqual(3, len(good))
+        self.assertTrue("Richard Cypher",
+                Student.objects.filter(average=3.14159)[0].name)
