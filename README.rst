@@ -1,7 +1,7 @@
 =======
 Redisco
 =======
-An object mapping library for Redis
+A Python object mapping library for Redis
 
 Description
 -----------
@@ -17,6 +17,9 @@ writing, commit dd8421273d4b17adfda56e8b753bdf92d4d43fb5 in github works with
 redisco 0.1.)
 
     pip install git+http://github.com/andymccurdy/redis-py.git@master#egg=redis-py
+
+Then, install redisco.
+
     pip install git+http://github.com/iamteem/redisco.git@master#egg=redisco
 
 
