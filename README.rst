@@ -1,0 +1,65 @@
+=======
+Redisco
+=======
+An object mapping library for Redis
+
+Description
+-----------
+Redisco allows you to store objects in _Redis: http://code.google.com/p/redis/.
+It is inspired by Ruby library _Ohm: http://github.com/soveran/ohm/ and its
+design and code are loosely based on Ohm and the Django ORM. It is built on top
+of _redis-py: http://github.com/andymccurdy/redis-py/
+
+Installation
+------------
+Redisco requires bleeding version of redis-py so get it first. (As of this
+writing, commit dd8421273d4b17adfda56e8b753bdf92d4d43fb5 in github works with
+redisco 0.1.)
+
+    pip install git+http://github.com/andymccurdy/redis-py.git@master#egg=redis-py
+    pip install git+http://github.com/iamteem/redisco.git@master#egg=redisco
+
+
+Models
+------
+Example
+
+    >>> from redisco.models import Model, Attribute, DateTimeField
+    >>> class Person(models.Model):
+    ...     name = Attribute(required=True)
+    ...     created_at = DateTimeField(auto_add=True)
+    ...
+    >>> person = Person(name="Conchita")
+    >>> person.is_valid()
+    True
+    >>> person.save()
+    True
+    >>> conchita = Person.objects.filter(name='Conchita')[0]
+    >>> conchita.name
+    'Conchita'
+    >>> conchita.created_at
+    datetime.datetime(2010, 5, 24, 16, 0, 31, 954704)
+
+
+Containers
+----------
+Redisco has three containers that roughly match Redis's supported data
+structures: lists, sets, sorted set. Anything done to the container is
+persisted to Redis.
+
+    >>> import redis
+    >>> from redisco.containers import Set
+    >>> s = Set('myset')
+    >>> s.add('apple')
+    >>> s.add('orange')
+    >>> s.members
+    set(['orange', 'apple'])
+    >>> t = Set('nset')
+    >>> t.add('kiwi')
+    >>> t.add('guava')
+    >>> t.members
+    set(['kiwi', 'guava'])
+    >>> s.update(t)
+    >>> s.members
+    set(['kiwi', 'orange', 'guava', 'apple'])
+
