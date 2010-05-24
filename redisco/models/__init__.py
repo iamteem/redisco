@@ -2,5 +2,5 @@ from base import *
 from attributes import *
 from exceptions import *
 
-__ALL__ = ['Model', 'Attribute', 'IntegerField', 'DateTimeField',
+__all__ = ['Model', 'Attribute', 'IntegerField', 'DateTimeField',
         'DateField', 'ReferenceField', 'ValidationError']
