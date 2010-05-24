@@ -49,6 +49,8 @@ Redisco has three containers that roughly match Redis's supported data
 structures: lists, sets, sorted set. Anything done to the container is
 persisted to Redis.
 
+    # Sets
+
     >>> import redis
     >>> from redisco.containers import Set
     >>> s = Set('myset')
@@ -64,6 +66,45 @@ persisted to Redis.
     >>> s.update(t)
     >>> s.members
     set(['kiwi', 'orange', 'guava', 'apple'])
+
+    # Lists
+    >>> import redis
+    >>> from redisco.containers import List
+    >>> l = List('alpha')
+    >>> l.append('a')
+    >>> l.append('b')
+    >>> l.append('c')
+    >>> 'a' in l
+    True
+    >>> 'd' in l
+    False
+    >>> len(l)
+    3
+    >>> l.index('b')
+    1
+    >>> l.members
+    ['a', 'b', 'c']
+
+    # Sorted Sets
+    >>> zset = SortedSet('zset')
+    >>> zset.members
+    ['d', 'a', 'b', 'c']
+    >>> 'e' in zset
+    False
+    >>> 'a' in zset
+    True
+    >>> zset.rank('d')
+    0
+    >>> zset.rank('b')
+    2
+    >>> zset[1]
+    'a'
+    >>> zset.add('f', 200)
+    >>> zset.members
+    ['d', 'a', 'b', 'c', 'f']
+    >>> zset.add('d', 99)
+    >>> zset.members
+    ['a', 'b', 'c', 'd', 'f']
 
 
 .. _Redis: http://code.google.com/p/redis/
