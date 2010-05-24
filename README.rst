@@ -5,10 +5,9 @@ A Python object mapping library for Redis
 
 Description
 -----------
-Redisco allows you to store objects in _Redis: http://code.google.com/p/redis/.
-It is inspired by Ruby library _Ohm: http://github.com/soveran/ohm/ and its
-design and code are loosely based on Ohm and the Django ORM. It is built on top
-of _redis-py: http://github.com/andymccurdy/redis-py/
+Redisco allows you to store objects in Redis_.  It is inspired by Ruby library
+Ohm_ and its design and code are loosely based on Ohm and the Django ORM.
+It is built on top of redis-py_.
 
 Installation
 ------------
@@ -66,3 +65,7 @@ persisted to Redis.
     >>> s.members
     set(['kiwi', 'orange', 'guava', 'apple'])
 
+
+.. _Redis: http://code.google.com/p/redis/
+.. _Ohm: http://github.com/soveran/ohm/
+.. _redis-py: http://github.com/andymccurdy/redis-py/
