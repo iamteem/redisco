@@ -124,9 +124,10 @@ class ListField(object):
         val = getattr(instance, self.name)
         errors = []
 
-        for item in val:
-            if not isinstance(item, self._target_type):
-                errors.append((self.name, 'bad type in list'))
+        if val:
+            for item in val:
+                if not isinstance(item, self._target_type):
+                    errors.append((self.name, 'bad type in list'))
 
         # validate first standard stuff
         if self.required:
@@ -191,8 +192,9 @@ class ReferenceField(object):
         val = getattr(instance, self.name)
         errors = []
 
-        if not isinstance(val, self._target_type):
-            errors.append((self.name, 'bad type for reference'))
+        if val:
+            if not isinstance(val, self._target_type):
+                errors.append((self.name, 'bad type for reference'))
 
         # validate first standard stuff
         if self.required:
