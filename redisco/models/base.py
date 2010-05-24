@@ -5,7 +5,9 @@ from attributes import *
 from key import Key
 from managers import ManagerDescriptor, Manager
 from utils import _encode_key
-from exceptions import FieldValidationError
+from exceptions import FieldValidationError, MissingID
+
+ZINDEXABLE = (IntegerField, DateTimeField, DateField)
 
 ##############################
 # Model Class Initialization #
@@ -142,7 +144,7 @@ class Model(object):
     def save(self):
         """Saves the instance to the datastore."""
         if not self.is_valid():
-            return False
+            return None
         self._write()
         return True
 
@@ -245,6 +247,11 @@ class Model(object):
                     setattr(self, k, datetime.now())
                 if v.auto_now_add and _new:
                     setattr(self, k, datetime.now())
+            elif isinstance(v, DateField):
+                if v.auto_now:
+                    setattr(self, k, date.today())
+                if v.auto_now_add and _new:
+                    setattr(self, k, date.today())
             h[k] = v.typecast_for_storage(getattr(self, k))
         # indices
         for index in self.indices:
@@ -339,7 +346,7 @@ class Model(object):
         if att not in self.lists:
             try:
                 descriptor = self.attributes[att]
-                if isinstance(descriptor, (IntegerField, DateTimeField)):
+                if isinstance(descriptor, ZINDEXABLE):
                     sval = descriptor.typecast_for_storage(value)
                     return self._tuple_for_index_key_attr_zset(att, value, sval)
                 else:

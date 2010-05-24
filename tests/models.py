@@ -1,6 +1,7 @@
 import base64
 import redis
 import unittest
+from datetime import date
 from redisco import models
 from redisco.connection import _get_client
 
@@ -15,13 +16,16 @@ class Person(models.Model):
         indices = ['full_name']
 
 
-class ModelTestCase(unittest.TestCase):
+class RediscoTestCase(unittest.TestCase):
     def setUp(self):
         self.client = _get_client()
         self.client.flushdb()
 
     def tearDown(self):
         self.client.flushdb()
+
+
+class ModelTestCase(RediscoTestCase):
 
     def test_key(self):
         self.assertEqual('Person', Person._key)
@@ -222,7 +226,7 @@ class ModelTestCase(unittest.TestCase):
             date_posted = models.DateTimeField()
             created_at = models.DateTimeField(auto_now_add=True)
         post = Post(title="First!", date_posted=n)
-        post.save()
+        assert post.save()
         post = Post.objects.get_by_id(post.id)
         self.assertEqual(n, post.date_posted)
         assert post.created_at
@@ -320,3 +324,41 @@ class ModelTestCase(unittest.TestCase):
         nin2 = Ninja(age=10)
         self.assertFalse(nin2.is_valid())
         self.assertTrue(('age', 'must be below 10') in nin2.errors)
+
+
+class Event(models.Model):
+    name = models.Attribute(required=True)
+    date = models.DateField(required=True)
+
+class DateFieldTestCase(RediscoTestCase):
+
+    def test_attribute(self):
+        event = Event(name="Legend of the Seeker Premiere",
+                      date=date(2008, 11, 12))
+        self.assertEqual(date(2008, 11, 12), event.date)
+
+    def test_saved_attribute(self):
+        instance = Event.objects.create(name="Legend of the Seeker Premiere",
+                      date=date(2008, 11, 12))
+        assert instance
+        event = Event.objects.get_by_id(instance.id)
+        assert event
+        self.assertEqual(date(2008, 11, 12), event.date)
+
+    def test_invalid_date(self):
+        event = Event(name="Event #1")
+        event.date = 1
+        self.assertFalse(event.is_valid())
+        self.assertTrue(('date', 'bad type') in event.errors)
+
+    def test_indexes(self):
+        d = date.today()
+        Event.objects.create(name="Event #1", date=d)
+        self.assertTrue('1' in Event._db.smembers(Event._key['all']))
+        # zfilter index
+        self.assertTrue(Event._db.exists("Event:date"))
+        # other field indices
+        self.assertEqual(2, Event._db.scard("Event:1:_indices"))
+        for index in Event._db.smembers("Event:1:_indices"):
+            self.assertTrue(index.startswith("Event:date") or
+                    index.startswith("Event:name"))

@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, date
 from redisco.containers import List
 from exceptions import FieldValidationError
 
@@ -44,6 +44,9 @@ class Attribute(object):
     def validate(self, instance):
         val = getattr(instance, self.name)
         errors = []
+        # type_validation
+        if val and not isinstance(val, self.value_type()):
+            errors.append((self.name, 'bad type',))
         # validate first standard stuff
         if self.required:
             if val is None or not str(val).strip():
@@ -89,6 +92,34 @@ class DateTimeField(Attribute):
         if value is None:
             return None
         return "%d.%d" % (time.mktime(value.timetuple()),  value.microsecond)
+
+    def value_type(self):
+        return datetime
+
+
+class DateField(Attribute):
+
+    def __init__(self, auto_now=False, auto_now_add=False, **kwargs):
+        super(DateField, self).__init__(**kwargs)
+        self.auto_now = auto_now
+        self.auto_now_add = auto_now_add
+
+    def typecast_for_read(self, value):
+        try:
+            return date.fromtimestamp(float(value))
+        except TypeError, ValueError:
+            return None
+
+    def typecast_for_storage(self, value):
+        if not isinstance(value, date):
+            raise TypeError("%s should be date object, and not a %s" %
+                    (self.name, type(value)))
+        if value is None:
+            return None
+        return "%f" % time.mktime(value.timetuple())
+
+    def value_type(self):
+        return date
 
 
 class ListField(object):

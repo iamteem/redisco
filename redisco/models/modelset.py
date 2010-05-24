@@ -90,8 +90,10 @@ class ModelSet(Set):
 
     def create(self, **kwargs):
         instance = self.model_class(**kwargs)
-        instance.save()
-        return instance
+        if instance.save():
+            return instance
+        else:
+            return None
 
     def all(self):
         return self._clone()

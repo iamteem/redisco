@@ -3,4 +3,4 @@ from attributes import *
 from exceptions import *
 
 __ALL__ = ['Model', 'Attribute', 'IntegerField', 'DateTimeField',
-        'ReferenceField', 'ValidationError']
+        'DateField', 'ReferenceField', 'ValidationError']
