@@ -276,6 +276,16 @@ class SortedSet(Container):
     def __len__(self):
         return self.db.zcard(self.key)
 
+    def __contains__(self, val):
+        return self.db.zscore(self.key, val) is not None
+
+    @property
+    def members(self):
+        return self.db.zrange(self.key, 0, -1)
+
+    def __iter__(self):
+        return self.members.__iter__()
+
     @property
     def _min_score(self):
         return self.db.zscore(self.key, self.__getitem__(0))
