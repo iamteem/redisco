@@ -51,7 +51,8 @@ class ModelSet(Set):
     ##########################################
 
     def get_by_id(self, id):
-        return self._get_item_with_id(id)
+        if self.model_class.exists(id):
+            return self._get_item_with_id(id)
 
     #####################################
     # METHODS THAT MODIFY THE MODEL SET #

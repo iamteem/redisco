@@ -262,6 +262,45 @@ class ModelTestCase(RediscoTestCase):
         self.assertFalse(nin2.is_valid())
         self.assertTrue(('age', 'must be below 10') in nin2.errors)
 
+    def test_load_object_from_key(self):
+        class Schedule(models.Model):
+            att = models.Attribute()
+
+        class PaperType(models.Model):
+            att = models.Attribute()
+
+        assert Schedule.objects.create(att="dinuguan")
+        assert Schedule.objects.create(att="chicharon")
+        assert Schedule.objects.create(att="Pizza")
+        assert Schedule.objects.create(att="Pasta")
+        assert Schedule.objects.create(att="Veggies")
+
+        assert PaperType.objects.create(att="glossy")
+        assert PaperType.objects.create(att="large")
+        assert PaperType.objects.create(att="huge")
+        assert PaperType.objects.create(att="A6")
+        assert PaperType.objects.create(att="A9")
+
+        o = models.from_key("Schedule:1")
+        assert o
+        self.assertEqual('1', o.id)
+        self.assertEqual(Schedule, type(o))
+        o = models.from_key("PaperType:1")
+        self.assertEqual('1', o.id)
+        self.assertEqual(PaperType, type(o))
+        o = models.from_key("Schedule:4")
+        self.assertEqual('4', o.id)
+        self.assertEqual(Schedule, type(o))
+        o = models.from_key("PaperType:5")
+        self.assertEqual('5', o.id)
+        self.assertEqual(PaperType, type(o))
+        o = models.from_key("PaperType:6")
+        self.assertTrue(o is None)
+
+        def boom():
+            models.from_key("some arbitrary key")
+        from redisco.models.exceptions import BadKeyError
+        self.assertRaises(BadKeyError, boom)
 
 
 class Event(models.Model):

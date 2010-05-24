@@ -1,16 +1,19 @@
 ##########
 # ERRORS #
 ##########
-class ValidationError(StandardError):
+class Error(StandardError):
     pass
 
-class MissingID(StandardError):
+class ValidationError(Error):
     pass
 
-class AttributeNotIndexed(StandardError):
+class MissingID(Error):
     pass
 
-class FieldValidationError(StandardError):
+class AttributeNotIndexed(Error):
+    pass
+
+class FieldValidationError(Error):
 
     def __init__(self, errors, *args, **kwargs):
         super(FieldValidationError, self).__init__(*args, **kwargs)
@@ -19,3 +22,6 @@ class FieldValidationError(StandardError):
     @property
     def errors(self):
         return self._errors
+
+class BadKeyError(Error):
+    pass

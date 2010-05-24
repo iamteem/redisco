@@ -5,9 +5,9 @@ from attributes import *
 from key import Key
 from managers import ManagerDescriptor, Manager
 from utils import _encode_key
-from exceptions import FieldValidationError, MissingID
+from exceptions import FieldValidationError, MissingID, BadKeyError
 
-__all__ = ['Model']
+__all__ = ['Model', 'from_key']
 
 ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)
 
@@ -246,7 +246,7 @@ class Model(object):
 
     @classmethod
     def exists(cls, id):
-        return (cls._db.exists(cls._key[str(id)]) or
+        return bool(cls._db.exists(cls._key[str(id)]) or
                     cls._db.sismember(cls._key['all'], str(id)))
 
 
@@ -419,12 +419,23 @@ class Model(object):
         return not self.__eq__(other)
 
 
-_known_models = {}
 def get_model_from_key(key):
+    _known_models = {}
     model_name = key.split(':', 2)[0]
-    global _known_models
     # populate
-    if not _known_models:
-        for klass in Model.__subclasses__():
-            _known_models[klass.__name__] = klass
+    for klass in Model.__subclasses__():
+        _known_models[klass.__name__] = klass
     return _known_models.get(model_name, None)
+
+
+def from_key(key):
+    model = get_model_from_key(key)
+    if model is None:
+        raise BadKeyError
+    try:
+        _, id = key.split(':', 2)
+        id = int(id)
+    except ValueError, TypeError:
+        raise BadKeyError
+
+    return model.objects.get_by_id(id)
