@@ -27,7 +27,7 @@ Models
 Example
 
     >>> from redisco.models import Model, Attribute, DateTimeField
-    >>> class Person(models.Model):
+    >>> class Person(Model):
     ...     name = Attribute(required=True)
     ...     created_at = DateTimeField(auto_add=True)
     ...
