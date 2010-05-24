@@ -24,7 +24,11 @@ class ModelSet(Set):
         if isinstance(index, slice):
             return self.limit(slice.start, slice.stop)
         else:
-            return self.get_by_id(self._set[index])
+            id = self._set[index]
+            if id:
+                return self.get_by_id(id)
+            else:
+                raise IndexError
 
     def __repr__(self):
         return "<ModelSet %s>" % self.model_class.__name__
