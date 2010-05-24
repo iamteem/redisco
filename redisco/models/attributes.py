@@ -229,7 +229,7 @@ class ReferenceField(object):
                  name=None,
                  attname=None,
                  indexed=True,
-                 required=True,
+                 required=False,
                  related_name=None,
                  validator=None):
         self._target_type = target_type

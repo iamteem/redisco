@@ -506,6 +506,27 @@ class ReferenceFieldTestCase(RediscoTestCase):
         self.assertTrue(d not in word.character_set)
         self.assertEqual(3, len(word.character_set))
 
+    def test_lazy_reference_field(self):
+        class User(models.Model):
+            name = models.Attribute()
+            address = models.ReferenceField('Address')
+
+        class Address(models.Model):
+            street_address = models.Attribute()
+            city = models.Attribute()
+            zipcode = models.Attribute()
+
+        address = Address.objects.create(street_address="32/F Redisville",
+                city="NoSQL City", zipcode="1.3.18")
+        assert address
+        user = User.objects.create(name="Richard Cypher", address=address)
+        assert user
+
+        u = User.objects.all()[0]
+        self.assertEqual("32/F Redisville", u.address.street_address)
+        self.assertEqual("NoSQL City", u.address.city)
+        self.assertEqual("1.3.18", u.address.zipcode)
+
 
 class DateTimeFieldTestCase(RediscoTestCase):
 

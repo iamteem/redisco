@@ -29,10 +29,14 @@ def _initialize_referenced(model_class, attribute):
         return (model_class.objects
                 .filter(**{attribute.attname: self.id}))
 
-    related_name = (attribute.related_name or
-            model_class.__name__.lower() + '_set')
-    setattr(attribute._target_type, related_name,
-            property(_related_objects))
+    klass = attribute._target_type
+    if isinstance(klass, basestring):
+        return (klass, attribute)
+    else:
+        related_name = (attribute.related_name or
+                model_class.__name__.lower() + '_set')
+        setattr(klass, related_name,
+                property(_related_objects))
 
 def _initialize_lists(model_class, name, bases, attrs):
     model_class._lists = {}
@@ -44,6 +48,7 @@ def _initialize_lists(model_class, name, bases, attrs):
 def _initialize_references(model_class, name, bases, attrs):
     model_class._references = {}
     h = {}
+    deferred = []
     for k, v in attrs.iteritems():
         if isinstance(v, ReferenceField):
             model_class._references[k] = v
@@ -51,8 +56,11 @@ def _initialize_references(model_class, name, bases, attrs):
             att = Attribute(name=v.attname)
             h[v.attname] = att
             setattr(model_class, v.attname, att)
-            _initialize_referenced(model_class, v)
+            refd = _initialize_referenced(model_class, v)
+            if refd:
+                deferred.append(refd)
     attrs.update(h)
+    return deferred
 
 def _initialize_indices(model_class, name, bases, attrs):
     model_class._indices = []
@@ -89,17 +97,27 @@ class ModelOptions(object):
     __getitem__ = get_field
 
 
+_deferred_refs = []
+
 class ModelBase(type):
     def __init__(cls, name, bases, attrs):
         super(ModelBase, cls).__init__(name, bases, attrs)
+        global _deferred_refs
         cls._meta = ModelOptions(attrs.pop('Meta', None))
-        _initialize_references(cls, name, bases, attrs)
+        deferred = _initialize_references(cls, name, bases, attrs)
+        _deferred_refs.extend(deferred)
         _initialize_attributes(cls, name, bases, attrs)
         _initialize_lists(cls, name, bases, attrs)
         _initialize_indices(cls, name, bases, attrs)
         _initialize_key(cls, name)
         _initialize_db(cls)
         _initialize_manager(cls)
+        # if targeted by a reference field using a string,
+        # override for next try
+        for k, v in _deferred_refs:
+            if name == k:
+                v._target_type = cls
+                _initialize_referenced(cls, v)
 
 
 class Model(object):
