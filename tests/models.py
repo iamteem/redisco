@@ -245,10 +245,9 @@ class ModelTestCase(unittest.TestCase):
 
         exams = Exam.objects.order('score')
         self.assertEqual([9, 33, 75, 95, 99,], [exam.score for exam in exams])
-        filtered = Exam.objects.zfilter(score__lt=96).zfilter(score__gt=10)
+        filtered = Exam.objects.zfilter(score__in=(10, 96))
         self.assertEqual(3, len(filtered))
-        filtered = Exam.objects.zfilter(score__lt=96).zfilter(score__gt=10)
-        self.assertEqual(3, len(filtered))
+
 
     def test_filter_date(self):
         from datetime import datetime
@@ -272,7 +271,7 @@ class ModelTestCase(unittest.TestCase):
             i += 1
 
         self.assertEqual([Post.objects.get_by_id(4)],
-                list(Post.objects.zfilter(date=
+                list(Post.objects.filter(date=
                     datetime(2009, 12, 21, 1, 40, 0))))
 
         lt = (0, 2, 3, 4)

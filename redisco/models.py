@@ -2,7 +2,7 @@ import time
 import base64
 from datetime import datetime
 from connection import _get_client
-from containers import Set, List, SortedSet, NonPersistentSet
+from containers import Set, List, SortedSet, NonPersistentList
 from key import Key
 
 ############
@@ -143,13 +143,13 @@ class ModelSet(Set):
 
     @property
     def _set(self):
+        # For performance reasons, only one zfilter is allowed.
+        if self._zfilters:
+            return NonPersistentList(self._add_zfilters())
         s = Set(self.key)
         if self._filters:
             s = self._add_set_filter(s)
-        if self._zfilters:
-            return NonPersistentSet(self._add_zfilters(s))
-        else:
-            return self._order(s.key)
+        return self._order(s.key)
 
     def _add_set_filter(self, s):
         indices = []
@@ -164,32 +164,32 @@ class ModelSet(Set):
         s.intersection(new_set_key, *[Set(n) for n in indices])
         return Set(new_set_key)
 
-    def _add_zfilters(self, s):
-        qualified = s.members
-        for f in self._zfilters:
-            for k, v in f.iteritems():
-                try:
-                    att, op = k.split('__')
-                except ValueError:
-                    att, op = k, 'eq'
-                index = self.model_class._key[att]
-                desc = self.model_class._attributes[att]
-                v = float(desc.typecast_for_storage(v))
-                zset = SortedSet(index)
-                r = set()
-                if op == 'eq':
-                    r = set(zset.eq(v))
-                elif op == 'lt':
-                    r = set(zset.lt(v))
-                elif op == 'gt':
-                    r = set(zset.gt(v))
-                elif op == 'gte':
-                    r = set(zset.ge(v))
-                elif op == 'lte':
-                    r = set(zset.le(v))
-                qualified.intersection_update(r)
-        return qualified
-
+    def _add_zfilters(self):
+        k, v = self._zfilters[0].items()[0]
+        try:
+            att, op = k.split('__')
+        except ValueError:
+            raise ValueError("zfilter should have an operator.")
+        index = self.model_class._key[att]
+        desc = self.model_class._attributes[att]
+        zset = SortedSet(index)
+        limit, offset = self._get_limit_and_offset()
+        if isinstance(v, (tuple, list,)):
+            min, max = v
+            min = float(desc.typecast_for_storage(min))
+            max = float(desc.typecast_for_storage(max))
+        else:
+            v = float(desc.typecast_for_storage(v))
+        if op == 'lt':
+            return zset.lt(v, limit, offset)
+        elif op == 'gt':
+            return zset.gt(v, limit, offset)
+        elif op == 'gte':
+            return zset.ge(v, limit, offset)
+        elif op == 'lte':
+            return zset.le(v, limit, offset)
+        elif op == 'in':
+            return zset.between(min, max, limit, offset)
 
     def _order(self, skey):
         if self._ordering:
@@ -244,6 +244,9 @@ class ModelSet(Set):
         return instance
 
     def _build_key_from_filter_item(self, index, value):
+        desc = self.model_class._attributes.get(index)
+        if desc:
+            value = desc.typecast_for_storage(value)
         return self.model_class._key[index][_encode_key(value)]
 
     def _clone(self):
@@ -714,9 +717,9 @@ class Model(object):
         if att not in self.lists:
             try:
                 descriptor = self.attributes[att]
-                if isinstance(descriptor, IntegerField) or \
-                        isinstance(descriptor, DateTimeField):
-                    return self._tuple_for_index_key_attr_zset(att, value)
+                if isinstance(descriptor, (IntegerField, DateTimeField)):
+                    sval = descriptor.typecast_for_storage(value)
+                    return self._tuple_for_index_key_attr_zset(att, value, sval)
                 else:
                     return self._tuple_for_index_key_attr_val(att, value)
             except KeyError:
@@ -730,9 +733,9 @@ class Model(object):
     def _tuple_for_index_key_attr_list(self, att, val):
         return ('list', [self._index_key_for_attr_val(att, e) for e in val])
 
-    def _tuple_for_index_key_attr_zset(self, att, val):
+    def _tuple_for_index_key_attr_zset(self, att, val, sval):
         return ('sortedset',
-                (self._key[att], self._index_key_for_attr_val(att, val)))
+                (self._key[att], self._index_key_for_attr_val(att, sval)))
 
     def _index_key_for_attr_val(self, att, val):
         return self._key[att][_encode_key(str(val))]
