@@ -9,6 +9,7 @@ from exceptions import FieldValidationError, MissingID
 
 __all__ = ['Model']
 
+ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)
 
 ##############################
 # Model Class Initialization #
@@ -305,6 +306,8 @@ class Model(object):
         This also adds to the _indices set of the object.
         """
         index = self._index_key_for(att)
+        if att == 'done':
+            print att, index
         if index is None:
             return
         t, index = index
@@ -345,14 +348,16 @@ class Model(object):
         if value is None:
             return None
         if att not in self.lists:
-            try:
-                descriptor = self.attributes[att]
+            descriptor = self.attributes.get(att)
+            if descriptor:
                 if isinstance(descriptor, ZINDEXABLE):
                     sval = descriptor.typecast_for_storage(value)
                     return self._tuple_for_index_key_attr_zset(att, value, sval)
                 else:
-                    return self._tuple_for_index_key_attr_val(att, value)
-            except KeyError:
+                    val = descriptor.typecast_for_storage(value)
+                    return self._tuple_for_index_key_attr_val(att, val)
+            else:
+                # this should non-attribute index
                 return self._tuple_for_index_key_attr_val(att, value)
         else:
             return self._tuple_for_index_key_attr_list(att, value)

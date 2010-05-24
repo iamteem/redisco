@@ -5,7 +5,7 @@ from exceptions import FieldValidationError
 
 __all__ = ['Attribute', 'ListField', 'DateTimeField',
         'DateField', 'ReferenceField', 'IntegerField',
-        'FloatField', 'ZINDEXABLE']
+        'FloatField', 'BooleanField', 'ZINDEXABLE']
 
 
 class Attribute(object):
@@ -63,6 +63,20 @@ class Attribute(object):
                 errors.extend(r)
         if errors:
             raise FieldValidationError(errors)
+
+
+class BooleanField(Attribute):
+    def typecast_for_read(self, value):
+        return bool(int(value))
+
+    def typecast_for_storage(self, value):
+        if value is None:
+            return "0"
+        return "1" if value else "0"
+
+    def value_type(self):
+        return bool
+
 
 class IntegerField(Attribute):
     def typecast_for_read(self, value):

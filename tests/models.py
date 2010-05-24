@@ -404,3 +404,41 @@ class FloatFieldTestCase(RediscoTestCase):
         self.assertEqual(3, len(good))
         self.assertTrue("Richard Cypher",
                 Student.objects.filter(average=3.14159)[0].name)
+
+
+class Task(models.Model):
+    name = models.Attribute()
+    done = models.BooleanField()
+
+class BooleanFieldTestCase(RediscoTestCase):
+    def test_attribute(self):
+        t = Task(name="Cook dinner", done=False)
+        assert t.save()
+        self.assertFalse(t.done)
+
+    def test_saved_attribute(self):
+        t = Task(name="Cook dinner", done=False)
+        assert t.save()
+
+        t = Task.objects.all()[0]
+        self.assertFalse(t.done)
+        t.done = True
+        assert t.save()
+
+        t = Task.objects.all()[0]
+        self.assertTrue(t.done)
+
+    def test_indexing(self):
+        assert Task.objects.create(name="Study Lua", done=False)
+        assert Task.objects.create(name="Read News", done=True)
+        assert Task.objects.create(name="Buy Dinner", done=False)
+        assert Task.objects.create(name="Visit Sick Friend", done=False)
+        assert Task.objects.create(name="Play", done=True)
+        assert Task.objects.create(name="Sing a song", done=False)
+        assert Task.objects.create(name="Pass the Exam", done=True)
+        assert Task.objects.create(name="Dance", done=False)
+        assert Task.objects.create(name="Code", done=True)
+        done = Task.objects.filter(done=True)
+        unfin = Task.objects.filter(done=False)
+        self.assertEqual(4, len(done))
+        self.assertEqual(5, len(unfin))
