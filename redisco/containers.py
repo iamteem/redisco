@@ -92,16 +92,22 @@ class Set(Container):
     # SET Operations
     def union(self, key, *others):
         """Return a new set with elements from the set and all others."""
+        if not isinstance(key, str):
+            raise ValueError("String expected.")
         self.db.sunionstore(key, [self.key] + [o.key for o in others])
         return Set(key)
 
     def intersection(self, key, *others):
         """Return a new set with elements common to the set and all others."""
+        if not isinstance(key, str):
+            raise ValueError("String expected.")
         self.db.sinterstore(key, [self.key] + [o.key for o in others])
         return Set(key)
 
     def difference(self, key, *others):
         """Return a new set with elements in the set that are not in the others."""
+        if not isinstance(key, str):
+            raise ValueError("String expected.")
         self.db.sdiffstore(key, [self.key] + [o.key for o in others])
         return Set(key)
 
@@ -133,7 +139,7 @@ class Set(Container):
         return u"<redisco.containers.Set(key=%s)>" % self.key
 
     def __str__(self):
-        return self.__repr__()
+        return str(self.__repr__())
 
     def __unicode__(self):
         return self.__str__()
@@ -156,7 +162,6 @@ class Set(Container):
         m = self.members
         for e in m:
             yield e
-
 
 class List(Container):
 
@@ -314,7 +319,6 @@ class SortedSet(Container):
 
 
 class NonPersistentList(object):
-
     def __init__(self, l):
         self._list = l
 
