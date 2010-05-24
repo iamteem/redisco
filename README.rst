@@ -3,10 +3,6 @@ Redisco
 =======
 A Python object mapping library for Redis
 
-:Author: Tim Medina
-:Email: iamteem@gmail.com
-:License: MIT
-
 Description
 -----------
 Redisco allows you to store objects in Redis_.  It is inspired by Ruby library
