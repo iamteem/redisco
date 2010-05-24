@@ -304,3 +304,19 @@ class ModelTestCase(unittest.TestCase):
         nin2 = Ninja(age=10)
         self.assertFalse(nin2.is_valid())
         self.assertTrue(('age', 'must be below 10') in nin2.errors)
+
+    def test_overriden_validation(self):
+        class Ninja(models.Model):
+            age = models.IntegerField(required=True)
+
+            def validate(self):
+                if self.age >= 10:
+                    self._errors.append(('age', 'must be below 10'))
+
+
+        nin1 = Ninja(age=9)
+        self.assertTrue(nin1.is_valid())
+
+        nin2 = Ninja(age=10)
+        self.assertFalse(nin2.is_valid())
+        self.assertTrue(('age', 'must be below 10') in nin2.errors)
