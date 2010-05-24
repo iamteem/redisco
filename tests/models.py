@@ -168,69 +168,6 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual(1998, chars[0].n)
         self.assertEqual("A", chars[0].m)
 
-    def test_list_field(self):
-        class Cake(models.Model):
-            name = models.Attribute()
-            ingredients = models.ListField(str)
-            sizes = models.ListField(int)
-
-        Cake.objects.create(name="StrCake",
-                            ingredients=['strawberry', 'sugar', 'dough'],
-                            sizes=[1, 2, 5])
-        Cake.objects.create(name="Normal Cake",
-                            ingredients=['sugar', 'dough'],
-                            sizes=[1, 3, 5])
-        Cake.objects.create(name="No Sugar Cake",
-                            ingredients=['dough'],
-                            sizes=[])
-        cake = Cake.objects.all()[0]
-        self.assertEqual(['strawberry', 'sugar', 'dough'],
-                cake.ingredients)
-        with_sugar = Cake.objects.filter(ingredients='sugar')
-        self.assertTrue(2, len(with_sugar))
-        self.assertEqual([1, 2, 5], with_sugar[0].sizes)
-        self.assertEqual([1, 3, 5], with_sugar[1].sizes)
-
-        size1 = Cake.objects.filter(sizes=str(2))
-        self.assertEqual(1, len(size1))
-
-    def test_reference_field(self):
-        class Word(models.Model):
-            placeholder = models.Attribute()
-
-        class Character(models.Model):
-            n = models.IntegerField()
-            m = models.Attribute()
-            word = models.ReferenceField(Word)
-
-        Word.objects.create()
-        word = Word.objects.all()[0]
-        Character.objects.create(n=32, m='a', word=word)
-        Character.objects.create(n=33, m='b', word=word)
-        Character.objects.create(n=34, m='c', word=word)
-        Character.objects.create(n=34, m='d')
-        for char in Character.objects.all():
-            self.assertEqual(word, char.word)
-        a, b, c, d = list(Character.objects.all())
-        self.assertTrue(a in word.character_set)
-        self.assertTrue(b in word.character_set)
-        self.assertTrue(c in word.character_set)
-        self.assertTrue(d not in word.character_set)
-        self.assertEqual(3, len(word.character_set))
-
-    def test_datetime_field(self):
-        from datetime import datetime
-        n = datetime(2009, 12, 31)
-        class Post(models.Model):
-            title = models.Attribute()
-            date_posted = models.DateTimeField()
-            created_at = models.DateTimeField(auto_now_add=True)
-        post = Post(title="First!", date_posted=n)
-        assert post.save()
-        post = Post.objects.get_by_id(post.id)
-        self.assertEqual(n, post.date_posted)
-        assert post.created_at
-
     def test_sort_by_int(self):
         class Exam(models.Model):
             score = models.IntegerField()
@@ -406,6 +343,7 @@ class FloatFieldTestCase(RediscoTestCase):
                 Student.objects.filter(average=3.14159)[0].name)
 
 
+
 class Task(models.Model):
     name = models.Attribute()
     done = models.BooleanField()
@@ -442,3 +380,75 @@ class BooleanFieldTestCase(RediscoTestCase):
         unfin = Task.objects.filter(done=False)
         self.assertEqual(4, len(done))
         self.assertEqual(5, len(unfin))
+
+
+
+class ListFieldTestCase(RediscoTestCase):
+    def test_basic(self):
+        class Cake(models.Model):
+            name = models.Attribute()
+            ingredients = models.ListField(str)
+            sizes = models.ListField(int)
+
+        Cake.objects.create(name="StrCake",
+                            ingredients=['strawberry', 'sugar', 'dough'],
+                            sizes=[1, 2, 5])
+        Cake.objects.create(name="Normal Cake",
+                            ingredients=['sugar', 'dough'],
+                            sizes=[1, 3, 5])
+        Cake.objects.create(name="No Sugar Cake",
+                            ingredients=['dough'],
+                            sizes=[])
+        cake = Cake.objects.all()[0]
+        self.assertEqual(['strawberry', 'sugar', 'dough'],
+                cake.ingredients)
+        with_sugar = Cake.objects.filter(ingredients='sugar')
+        self.assertTrue(2, len(with_sugar))
+        self.assertEqual([1, 2, 5], with_sugar[0].sizes)
+        self.assertEqual([1, 3, 5], with_sugar[1].sizes)
+
+        size1 = Cake.objects.filter(sizes=str(2))
+        self.assertEqual(1, len(size1))
+
+
+class ReferenceFieldTestCase(RediscoTestCase):
+    def test_basic(self):
+        class Word(models.Model):
+            placeholder = models.Attribute()
+
+        class Character(models.Model):
+            n = models.IntegerField()
+            m = models.Attribute()
+            word = models.ReferenceField(Word)
+
+        Word.objects.create()
+        word = Word.objects.all()[0]
+        Character.objects.create(n=32, m='a', word=word)
+        Character.objects.create(n=33, m='b', word=word)
+        Character.objects.create(n=34, m='c', word=word)
+        Character.objects.create(n=34, m='d')
+        for char in Character.objects.all():
+            self.assertEqual(word, char.word)
+        a, b, c, d = list(Character.objects.all())
+        self.assertTrue(a in word.character_set)
+        self.assertTrue(b in word.character_set)
+        self.assertTrue(c in word.character_set)
+        self.assertTrue(d not in word.character_set)
+        self.assertEqual(3, len(word.character_set))
+
+
+class DateTimeFieldTestCase(RediscoTestCase):
+
+    def test_basic(self):
+        from datetime import datetime
+        n = datetime(2009, 12, 31)
+        class Post(models.Model):
+            title = models.Attribute()
+            date_posted = models.DateTimeField()
+            created_at = models.DateTimeField(auto_now_add=True)
+        post = Post(title="First!", date_posted=n)
+        assert post.save()
+        post = Post.objects.get_by_id(post.id)
+        self.assertEqual(n, post.date_posted)
+        assert post.created_at
+

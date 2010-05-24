@@ -3,7 +3,8 @@ from redisco.connection import connect
 connect(host='localhost', port=6380, db=10)
 from containers import SetTestCase, ListTestCase, SortedSetTestCase
 from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
-        BooleanFieldTestCase)
+        BooleanFieldTestCase, ListFieldTestCase, ReferenceFieldTestCase,
+        DateTimeFieldTestCase)
 
 def all_tests():
     suite = unittest.TestSuite()
@@ -14,4 +15,7 @@ def all_tests():
     suite.addTest(unittest.makeSuite(DateFieldTestCase))
     suite.addTest(unittest.makeSuite(FloatFieldTestCase))
     suite.addTest(unittest.makeSuite(BooleanFieldTestCase))
+    suite.addTest(unittest.makeSuite(ListFieldTestCase))
+    suite.addTest(unittest.makeSuite(ReferenceFieldTestCase))
+    suite.addTest(unittest.makeSuite(DateTimeFieldTestCase))
     return suite
