@@ -116,7 +116,6 @@ class ModelSet(Set):
         indices = []
         for k, v in self._filters.iteritems():
             index = self._build_key_from_filter_item(k, v)
-            print "eto", index
             if k not in self.model_class._indices:
                 raise AttributeNotIndexed(
                         "Attribute %s is not indexed in %s class." %
@@ -209,7 +208,6 @@ class ModelSet(Set):
         desc = self.model_class._attributes.get(index)
         if desc:
             value = desc.typecast_for_storage(value)
-            print value
         return self.model_class._key[index][_encode_key(value)]
 
     def _clone(self):

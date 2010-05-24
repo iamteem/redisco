@@ -306,8 +306,6 @@ class Model(object):
         This also adds to the _indices set of the object.
         """
         index = self._index_key_for(att)
-        if att == 'done':
-            print att, index
         if index is None:
             return
         t, index = index
