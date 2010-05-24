@@ -111,16 +111,25 @@ class Model(object):
                 field.validate(self)
             except FieldValidationError, e:
                 self._errors.extend(e.errors)
+        self.validate()
         return not bool(self._errors)
 
-    @property
-    def errors(self):
-        return self._errors
+    def validate(self):
+        """Overriden in the model class.
+        
+        Do custom validation here. Add tuples to self._errors.
 
-    @property
-    def fields(self):
-        return (self.attributes.values() + self.lists.values()
-                + self.references.values())
+        Example:
+            
+            class Person(Model):
+                name = Attribute(required=True)
+
+                def validate(self):
+                    if name == 'Nemo':
+                        self._errors.append(('name', 'cannot be Nemo'))
+        
+        """
+        pass
 
     def update_attributes(self, **kwargs):
         """Updates the attributes of the model."""
@@ -199,6 +208,15 @@ class Model(object):
     @property
     def db(cls):
         return cls._db
+
+    @property
+    def errors(self):
+        return self._errors
+
+    @property
+    def fields(self):
+        return (self.attributes.values() + self.lists.values()
+                + self.references.values())
 
     ###################
     # Private methods #
