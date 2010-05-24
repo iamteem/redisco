@@ -67,7 +67,9 @@ persisted to Redis.
     >>> s.members
     set(['kiwi', 'orange', 'guava', 'apple'])
 
+
     # Lists
+
     >>> import redis
     >>> from redisco.containers import List
     >>> l = List('alpha')
@@ -85,7 +87,9 @@ persisted to Redis.
     >>> l.members
     ['a', 'b', 'c']
 
+
     # Sorted Sets
+
     >>> zset = SortedSet('zset')
     >>> zset.members
     ['d', 'a', 'b', 'c']
