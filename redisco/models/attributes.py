@@ -3,6 +3,9 @@ from datetime import datetime, date
 from redisco.containers import List
 from exceptions import FieldValidationError
 
+__all__ = ['Attribute', 'ListField', 'DateTimeField',
+        'DateField', 'ReferenceField', 'IntegerField']
+
 class Attribute(object):
     def __init__(self,
                  name=None,

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from redisco.connection import _get_client
 from redisco.containers import Set, List, SortedSet, NonPersistentList
 from attributes import *
@@ -7,7 +7,10 @@ from managers import ManagerDescriptor, Manager
 from utils import _encode_key
 from exceptions import FieldValidationError, MissingID
 
+__all__ = ['Model']
+
 ZINDEXABLE = (IntegerField, DateTimeField, DateField)
+
 
 ##############################
 # Model Class Initialization #
