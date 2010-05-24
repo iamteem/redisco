@@ -2,8 +2,6 @@ import unittest
 from redisco.connection import connect, _get_client
 from redisco import containers as cont
 
-connect(host='localhost', port=6380, db=10)
-
 class SetTestCase(unittest.TestCase):
     def setUp(self):
         self.client = _get_client()

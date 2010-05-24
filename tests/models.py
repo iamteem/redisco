@@ -2,6 +2,7 @@ import base64
 import redis
 import unittest
 from redisco import models
+from redisco.connection import _get_client
 
 class Person(models.Model):
     first_name = models.Attribute()
@@ -16,7 +17,7 @@ class Person(models.Model):
 
 class ModelTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = redis.Redis(host='localhost', port=6380, db=10)
+        self.client = _get_client()
         self.client.flushdb()
 
     def tearDown(self):
