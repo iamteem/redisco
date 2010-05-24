@@ -362,3 +362,16 @@ class DateFieldTestCase(RediscoTestCase):
         for index in Event._db.smembers("Event:1:_indices"):
             self.assertTrue(index.startswith("Event:date") or
                     index.startswith("Event:name"))
+
+    def test_auto_now(self):
+        class Report(models.Model):
+            title = models.Attribute()
+            created_on = models.DateField(auto_now_add=True)
+            updated_on = models.DateField(auto_now=True)
+
+        r = Report(title="My Report")
+        assert r.save()
+        r = Report.objects.filter(title="My Report")[0]
+        self.assertTrue(isinstance(r.created_on, date))
+        self.assertTrue(isinstance(r.updated_on, date))
+        self.assertEqual(date.today(), r.created_on)
