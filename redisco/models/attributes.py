@@ -43,20 +43,23 @@ class Attribute(object):
         return value
 
     def typecast_for_storage(self, value):
-        return str(value)
+        return unicode(value)
     
     def value_type(self):
-        return str
+        return unicode
+
+    def acceptable_types(self):
+        return basestring
 
     def validate(self, instance):
         val = getattr(instance, self.name)
         errors = []
         # type_validation
-        if val and not isinstance(val, self.value_type()):
+        if val and not isinstance(val, self.acceptable_types()):
             errors.append((self.name, 'bad type',))
         # validate first standard stuff
         if self.required:
-            if val is None or not str(val).strip():
+            if val is None or not unicode(val).strip():
                 errors.append((self.name, 'required'))
         # validate using validator
         if self.validator:
@@ -79,6 +82,9 @@ class BooleanField(Attribute):
     def value_type(self):
         return bool
 
+    def acceptable_types(self):
+        return self.value_type()
+
 
 class IntegerField(Attribute):
     def typecast_for_read(self, value):
@@ -87,10 +93,13 @@ class IntegerField(Attribute):
     def typecast_for_storage(self, value):
         if value is None:
             return "0"
-        return str(value)
+        return unicode(value)
 
     def value_type(self):
         return int
+
+    def acceptable_types(self):
+        return self.value_type()
 
 
 class FloatField(Attribute):
@@ -100,10 +109,14 @@ class FloatField(Attribute):
     def typecast_for_storage(self, value):
         if value is None:
             return "0"
-        return str(value)
+        return unicode(value)
 
     def value_type(self):
         return float
+
+    def acceptable_types(self):
+        return self.value_type()
+
 
 class DateTimeField(Attribute):
 
@@ -129,6 +142,8 @@ class DateTimeField(Attribute):
     def value_type(self):
         return datetime
 
+    def acceptable_types(self):
+        return self.value_type()
 
 class DateField(Attribute):
 
@@ -154,6 +169,8 @@ class DateField(Attribute):
     def value_type(self):
         return date
 
+    def acceptable_types(self):
+        return self.value_type()
 
 class ListField(object):
     def __init__(self, target_type,
