@@ -48,19 +48,81 @@ Example
 Model Attributes
 ----------------
 
-Here are the model attributes and value types they can store.
+Attribute
+    Stores unicode strings. If used for large bodies of text,
+    turn indexing of this field off by setting indexed=True.
 
-:Attribute:       unicode
-:IntegerField:    int
-:DateTimeField:   DateTime
-:DateField:       Date
-:FloatField:      float
-:BooleanField:    bool
-:ReferenceField:  reference to another model
-:ListField:       list of unicode, int, float, models
+IntegerField
+    Stores an int. Ints are stringified using unicode() before saving to
+    Redis.
 
-Options for creating attributes include required, default, and validator.
-DateField and DateTimeField have the auto_now_add and auto_now.
+Counter
+    An IntegerField that can only be accessed via Model.incr and Model.decr.
+
+DateTimeField
+    Can store a DateTime object. Saved in the Redis store as a float.
+
+DateFieldDate
+    Can store a Date object. Saved in Redis as a float.
+
+FloatField
+    Can store floats.
+
+BooleanField
+    Can store bools. Saved in Redis as 1's and 0's.
+
+ReferenceField
+    Can reference other redisco model.
+
+ListField
+    Can store a list of unicode, int, float, as well as other redisco models.
+
+
+Attribute Options
+-----------------
+
+Options for creating attributes include required, default, indexed, and validator.
+DateField and DateTimeField have auto_now_add and auto_now options.
+
+
+Saving and Validating
+---------------------
+
+Calling Model.is_valid will validate the attributes and lists. Model.is_valid
+is called when the instance is being saved. When there are invalid fields,
+Model.errors will hold the list of tuples containing the invalid fields and
+the reason for its invalidity. E.g.
+[('name', 'required'),('name', 'too short')]
+
+Fields can be validated using the validator argument of the attribute. Just
+pass a callable that accepts two arguments -- the field name and the value
+of the attribute. The callable should return a list of errors.
+
+Model.validate will also be called before saving the instance. Override it
+to validate instances not related to attributes.
+
+Example
+
+::
+
+    def not_me(field_name, value):
+        if value == 'Me':
+            return ((field_name, 'it is me'),)
+
+    class Person(models.Model):
+        name = models.Attribute(required=True, validator=not_me)
+        age = models.IntegerField()
+
+        def validate(self):
+            if self.age and self.age < 21:
+                self._errors.append(('age', 'above 21'))
+
+    >>> person = Person(name='Me')
+    >>> person.is_valid()
+    False
+    >>> person.errors
+    [('name', 'it is me')]
+
 
 Queries
 -------
