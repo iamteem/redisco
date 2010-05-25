@@ -64,6 +64,23 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual("Morgan", p.first_name)
         self.assertEqual(None, p.last_name)
 
+    def test_default_attribute_val(self):
+        class User(models.Model):
+            views = models.IntegerField(default=199)
+            liked = models.BooleanField(default=True)
+            disliked = models.BooleanField(default=False)
+
+        u = User()
+        self.assertEqual(True, u.liked)
+        self.assertEqual(False, u.disliked)
+        self.assertEqual(199, u.views)
+        assert u.save()
+
+        u = User.objects.all()[0]
+        self.assertEqual(True, u.liked)
+        self.assertEqual(False, u.disliked)
+        self.assertEqual(199, u.views)
+
 
     def test_getitem(self):
         person1 = Person(first_name="Granny", last_name="Goose")

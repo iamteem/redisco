@@ -13,11 +13,13 @@ class Attribute(object):
                  name=None,
                  indexed=True,
                  required=False,
-                 validator=None):
+                 validator=None,
+                 default=None):
         self.name = name
         self.indexed = indexed
         self.required = required
         self.validator = validator
+        self.default = default
 
     def __get__(self, instance, owner):
         try:
@@ -30,8 +32,8 @@ class Attribute(object):
                 self.__set__(instance, val)
                 return val
             else:
-                self.__set__(instance, None)
-                return None
+                self.__set__(instance, self.default)
+                return self.default
 
 
     def __set__(self, instance, value):
@@ -158,12 +160,14 @@ class ListField(object):
                  name=None,
                  indexed=True,
                  required=False,
-                 validator=None):
+                 validator=None,
+                 default=None):
         self._target_type = target_type
         self.name = name
         self.indexed = indexed
         self.required = required
         self.validator = validator
+        self.default = default or []
         from base import Model
         self._redisco_model = (isinstance(target_type, basestring) or
             issubclass(target_type, Model))
@@ -173,7 +177,7 @@ class ListField(object):
             return getattr(instance, '_' + self.name)
         except AttributeError:
             if instance.is_new():
-                val = []
+                val = self.default
             else:
                 key = instance.key()[self.name]
                 val = List(key).members
@@ -231,6 +235,7 @@ class ReferenceField(object):
                  indexed=True,
                  required=False,
                  related_name=None,
+                 default=None,
                  validator=None):
         self._target_type = target_type
         self.name = name
@@ -239,6 +244,7 @@ class ReferenceField(object):
         self._attname = attname
         self._related_name = related_name
         self.validator = validator
+        self.default = default
 
     def __set__(self, instance, value):
         if not isinstance(value, self.value_type()) and \
@@ -254,7 +260,8 @@ class ReferenceField(object):
                 setattr(self, '_' + self.name, o)
             return getattr(self, '_' + self.name)
         except AttributeError:
-            return None
+            setattr(self, '_' + self.name, self.default)
+            return self.default
 
     def value_type(self):
         return self._target_type
