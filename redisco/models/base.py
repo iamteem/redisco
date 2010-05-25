@@ -249,7 +249,6 @@ class Model(object):
         return bool(cls._db.exists(cls._key[str(id)]) or
                     cls._db.sismember(cls._key['all'], str(id)))
 
-
     ###################
     # Private methods #
     ###################
@@ -437,5 +436,4 @@ def from_key(key):
         id = int(id)
     except ValueError, TypeError:
         raise BadKeyError
-
     return model.objects.get_by_id(id)

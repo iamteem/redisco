@@ -26,7 +26,7 @@ class ModelSet(Set):
         else:
             id = self._set[index]
             if id:
-                return self.get_by_id(id)
+                return self._get_item_with_id(id)
             else:
                 raise IndexError
 
@@ -110,12 +110,16 @@ class ModelSet(Set):
     @property
     def _set(self):
         # For performance reasons, only one zfilter is allowed.
+        if hasattr(self, '_cached_set'):
+            return self._cached_set
         if self._zfilters:
-            return NonPersistentList(self._add_zfilters())
+            self._cached_set = NonPersistentList(self._add_zfilters())
+            return self._cached_set
         s = Set(self.key)
         if self._filters:
             s = self._add_set_filter(s)
-        return self._order(s.key)
+        self._cached_set = self._order(s.key)
+        return self._cached_set
 
     def _add_set_filter(self, s):
         indices = []
