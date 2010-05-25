@@ -54,6 +54,13 @@ class ModelSet(Set):
         if self.model_class.exists(id):
             return self._get_item_with_id(id)
 
+    def first(self):
+        try:
+            return self.__getitem__(0)
+        except IndexError:
+            return None
+
+
     #####################################
     # METHODS THAT MODIFY THE MODEL SET #
     #####################################

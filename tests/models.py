@@ -133,6 +133,17 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual("Granny Mommy", persons[0].full_name())
 
     
+    def test_first(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Granny", last_name="Kent")
+        granny = Person.objects.filter(first_name="Granny").first()
+        self.assertEqual('1', granny.id)
+        lana = Person.objects.filter(first_name="Lana").first()
+        self.assertFalse(lana)
+
+
     def test_iter(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
         Person.objects.create(first_name="Clark", last_name="Kent")
@@ -187,6 +198,7 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual("Richard", res[0].first_name)
         self.assertEqual("Richard", res[1].first_name)
         self.assertEqual("Zeddicus", res[2].first_name)
+
 
     def test_integer_field(self):
         class Character(models.Model):
