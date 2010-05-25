@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-version = '0.1.dev5'
+version = '0.1.dev6'
 
 try:
     from setuptools import setup

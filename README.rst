@@ -25,11 +25,14 @@ Models
 ------
 Example
 
-    >>> from redisco.models import Model, Attribute, DateTimeField
-    >>> class Person(Model):
-    ...     name = Attribute(required=True)
-    ...     created_at = DateTimeField(auto_add=True)
-    ...
+::
+
+    from redisco import models
+    class Person(models.Model):::
+        name = models.Attribute(required=True)
+        created_at = models.DateTimeField(auto_add=True)
+        fave_colors = models.ListField(str)
+
     >>> person = Person(name="Conchita")
     >>> person.is_valid()
     True
@@ -42,14 +45,61 @@ Example
     datetime.datetime(2010, 5, 24, 16, 0, 31, 954704)
 
 
+Model Attributes
+----------------
+
+Here are the model attributes and value types they can store.
+
+:Attribute:       unicode
+:IntegerField:    int
+:DateTimeField:   DateTime
+:DateField:       Date
+:FloatField:      float
+:BooleanField:    bool
+:ReferenceField:  reference to another model
+:ListField:       list of unicode, int, float, models
+
+Options for creating attributes include required, default, and validator.
+DateField and DateTimeField have the auto_now_add and auto_now.
+
+Queries
+-------
+
+Queries are executed using a manager, accessed via the objects class
+attribute.
+
+Examples
+
+::
+
+    Person.objects.all()
+    Person.objects.filter(name='Conchita')
+    Person.objects.filter(name='Conchita').first()
+    Person.objects.all().order('name')
+    Person.objects.filter(fave_colors='Red')
+
+Ranged Queries
+--------------
+
+Redisco has a limited support for queries involving ranges -- it can only
+filter fields that are numeric, i.e. DateField, DateTimeField, IntegerField,
+and FloatField. The zfilter method of the manager is used for these queries.
+
+::
+
+    Person.objects.zfilter(created_at__lt=datetime(2010, 4, 20, 5, 2, 0))
+    Person.objects.zfilter(created_at__gte=datetime(2010, 4, 20, 5, 2, 0))
+    Person.objects.zfilter(created_at__in=(datetime(2010, 4, 20, 5, 2, 0), datetime(2010, 5, 1)))
+
+
 Containers
 ----------
 Redisco has three containers that roughly match Redis's supported data
 structures: lists, sets, sorted set. Anything done to the container is
 persisted to Redis.
 
-    # Sets
-
+Sets
+----
     >>> import redis
     >>> from redisco.containers import Set
     >>> s = Set('myset')
@@ -66,9 +116,8 @@ persisted to Redis.
     >>> s.members
     set(['kiwi', 'orange', 'guava', 'apple'])
 
-
-    # Lists
-
+Lists
+-----
 
     >>> import redis
     >>> from redisco.containers import List
@@ -88,8 +137,8 @@ persisted to Redis.
     ['a', 'b', 'c']
 
 
-    # Sorted Sets
-
+Sorted Sets
+-----------
 
     >>> zset = SortedSet('zset')
     >>> zset.members
