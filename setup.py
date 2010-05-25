@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-version = '0.1.dev2'
+version = '0.1.dev3'
 
 try:
     from setuptools import setup
@@ -9,7 +9,7 @@ except ImportError:
 
 setup(name='redisco',
       version=version,
-      description='Containers and Simple Model for Redis',
+      description='Python Containers and Simple Models for Redis',
       url='http://github.com/iamteem/redisco',
       download_url='',
       author='Tim Medina',

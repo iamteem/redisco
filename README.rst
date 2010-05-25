@@ -1,23 +1,22 @@
 =======
 Redisco
 =======
-A Python object mapping library for Redis
+Python Containers and Simple Models for Redis
 
 Description
 -----------
-Redisco allows you to store objects in Redis_.  It is inspired by Ruby library
+Redisco allows you to store objects in Redis_. It is inspired by Ruby library
 Ohm_ and its design and code are loosely based on Ohm and the Django ORM.
-It is built on top of redis-py_.
+It is built on top of redis-py_. It includes container classes that allow
+easier access to Redis sets, lists, and sorted sets.
 
 Installation
 ------------
-Redisco requires bleeding version of redis-py so get it first. (As of this
-writing, commit dd8421273d4b17adfda56e8b753bdf92d4d43fb5 in github works with
-redisco 0.1.)
+Redisco requires latest version of redis-py so get it first.
 
     pip install git+http://github.com/andymccurdy/redis-py.git@master#egg=redis-py
 
-Then, install redisco.
+Then install redisco.
 
     pip install git+http://github.com/iamteem/redisco.git@master#egg=redisco
 
@@ -111,6 +110,7 @@ persisted to Redis.
     >>> zset.add('d', 99)
     >>> zset.members
     ['a', 'b', 'c', 'd', 'f']
+
 
 
 .. _Redis: http://code.google.com/p/redis/
