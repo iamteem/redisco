@@ -5,7 +5,7 @@ from exceptions import FieldValidationError
 
 __all__ = ['Attribute', 'ListField', 'DateTimeField',
         'DateField', 'ReferenceField', 'IntegerField',
-        'FloatField', 'BooleanField', 'ZINDEXABLE']
+        'FloatField', 'BooleanField', 'Counter', 'ZINDEXABLE']
 
 
 class Attribute(object):
@@ -313,4 +313,24 @@ class ReferenceField(object):
         if errors:
             raise FieldValidationError(errors)
 
-ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField)
+
+class Counter(IntegerField):
+    def __init__(self, **kwargs):
+        super(Counter, self).__init__(**kwargs)
+        if not kwargs.has_key('default') or self.default is None:
+            self.default = 0
+
+    def __set__(self, instance, value):
+        raise AttributeError("can't set a counter.")
+
+    def __get__(self, instance, owner):
+        if not instance.is_new():
+            v = instance.db.hget(instance.key(), self.name)
+            if v is None:
+                return 0
+            return int(v)
+        else:
+            return 0
+
+
+ZINDEXABLE = (IntegerField, DateTimeField, DateField, FloatField, Counter)

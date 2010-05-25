@@ -73,6 +73,12 @@ def _initialize_indices(model_class, name, bases, attrs):
     if model_class._meta['indices']:
         model_class._indices.extend(model_class._meta['indices'])
 
+def _initialize_counters(model_class, name, bases, attrs):
+    model_class._counters = []
+    for k, v in attrs.iteritems():
+        if isinstance(v, Counter):
+            model_class._counters.append(k)
+
 def _initialize_key(model_class, name):
     model_class._key = Key(name)
 
@@ -107,6 +113,7 @@ class ModelBase(type):
         deferred = _initialize_references(cls, name, bases, attrs)
         _deferred_refs.extend(deferred)
         _initialize_attributes(cls, name, bases, attrs)
+        _initialize_counters(cls, name, bases, attrs)
         _initialize_lists(cls, name, bases, attrs)
         _initialize_indices(cls, name, bases, attrs)
         _initialize_key(cls, name)
@@ -185,6 +192,16 @@ class Model(object):
         """
         return not hasattr(self, '_id')
 
+    def incr(self, att, val=1):
+        """Increments a counter."""
+        if att not in self.counters:
+            raise ValueError("%s is not a counter.")
+        self.db.hincrby(self.key(), att, val)
+
+    def decr(self, att, val=1):
+        self.incr(att, -1 * val)
+
+
     @property
     def id(self):
         """Returns the id of the instance.
@@ -239,6 +256,10 @@ class Model(object):
     def fields(self):
         return (self.attributes.values() + self.lists.values()
                 + self.references.values())
+
+    @property
+    def counters(cls):
+        return cls._counters
 
     #################
     # Class Methods #

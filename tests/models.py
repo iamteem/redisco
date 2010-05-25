@@ -636,3 +636,22 @@ class DateTimeFieldTestCase(RediscoTestCase):
         self.assertEqual(n, post.date_posted)
         assert post.created_at
 
+
+class CounterFieldTestCase(RediscoTestCase):
+
+    def test_basic(self):
+        class Post(models.Model):
+            title = models.Attribute()
+            body = models.Attribute(indexed=False)
+            liked = models.Counter()
+
+        post = Post.objects.create(title="First!",
+                body="Lorem ipsum")
+        self.assert_(post)
+        post.incr('liked')
+        post.incr('liked', 2)
+        post = Post.objects.get_by_id(post.id)
+        self.assertEqual(3, post.liked)
+        post.decr('liked', 2)
+        post = Post.objects.get_by_id(post.id)
+        self.assertEqual(1, post.liked)
