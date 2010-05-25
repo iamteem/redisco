@@ -7,11 +7,15 @@ try:
 except ImportError:
     from distutils.core import setup
 
+long_description = open('README.rst').read()
+
+
 setup(name='redisco',
       version=version,
       description='Python Containers and Simple Models for Redis',
       url='http://github.com/iamteem/redisco',
       download_url='',
+      long_description=long_description,
       author='Tim Medina',
       author_email='iamteem@gmail.com',
       maintainer='Tim Medina',
