@@ -63,7 +63,7 @@ class Attribute(object):
                 errors.append((self.name, 'required'))
         # validate using validator
         if self.validator:
-            r = self.validator(val)
+            r = self.validator(self.name, val)
             if r:
                 errors.extend(r)
         if errors:
