@@ -28,7 +28,7 @@ Example
 ::
 
     from redisco import models
-    class Person(models.Model):::
+    class Person(models.Model):
         name = models.Attribute(required=True)
         created_at = models.DateTimeField(auto_add=True)
         fave_colors = models.ListField(str)
@@ -115,7 +115,7 @@ Example
 
         def validate(self):
             if self.age and self.age < 21:
-                self._errors.append(('age', 'above 21'))
+                self._errors.append(('age', 'below 21'))
 
     >>> person = Person(name='Me')
     >>> person.is_valid()
