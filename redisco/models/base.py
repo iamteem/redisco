@@ -281,14 +281,18 @@ class Model(object):
                     setattr(self, k, date.today())
                 if v.auto_now_add and _new:
                     setattr(self, k, date.today())
-            h[k] = v.typecast_for_storage(getattr(self, k))
+            for_storage = getattr(self, k)
+            if for_storage is not None:
+                h[k] = v.typecast_for_storage(for_storage)
         # indices
         for index in self.indices:
             if index not in self.lists and index not in self.attributes:
                 v = getattr(self, index)
                 if callable(v):
                     v = v()
-                h[index] = str(v)
+                if v:
+                    h[index] = str(v)
+        del self.db[self.key()]
         if h:
             self.db.hmset(self.key(), h)
 

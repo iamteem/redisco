@@ -42,11 +42,28 @@ class ModelTestCase(RediscoTestCase):
     def test_save(self):
         person1 = Person(first_name="Granny", last_name="Goose")
         person1.save()
-        person2 = Person(first_name="Jejomar", last_name="Binay")
+        person2 = Person(first_name="Jejomar")
         person2.save()
 
         self.assertEqual('1', person1.id)
         self.assertEqual('2', person2.id)
+
+        jejomar = Person.objects.get_by_id('2')
+        self.assertEqual(None, jejomar.last_name)
+
+    def test_update(self):
+        person1 = Person(first_name="Granny", last_name="Goose")
+        person1.save()
+
+        p = Person.objects.get_by_id('1')
+        p.first_name = "Morgan"
+        p.last_name = None
+        assert p.save()
+
+        p = Person.objects.get_by_id(p.id)
+        self.assertEqual("Morgan", p.first_name)
+        self.assertEqual(None, p.last_name)
+
 
     def test_getitem(self):
         person1 = Person(first_name="Granny", last_name="Goose")
@@ -448,6 +465,14 @@ class ListFieldTestCase(RediscoTestCase):
 
         size1 = Cake.objects.filter(sizes=str(2))
         self.assertEqual(1, len(size1))
+
+        cake.sizes = None
+        cake.ingredients = None
+        assert cake.save()
+
+        cake = Cake.objects.get_by_id(cake.id)
+        self.assertEqual([], cake.sizes)
+        self.assertEqual([], cake.ingredients)
 
     def test_list_of_reference_fields(self):
         class Book(models.Model):
