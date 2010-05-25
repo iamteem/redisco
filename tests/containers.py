@@ -127,6 +127,25 @@ class SetTestCase(unittest.TestCase):
         abc -= def_
         self.assertEqual(set(['a', 'b', 'c']), abc.all())
 
+    def test_methods_that_should_return_new_sets(self):
+        abc = cont.Set('abc', self.client)
+        for c in 'abc':
+            abc.add(c)
+
+        def_ = cont.Set('def', self.client)
+        for c in 'def':
+            def_.add(c)
+
+        # new_key as a set should raise error
+        # only strings are allowed as keys
+        new_set = cont.Set('new_set')
+        self.assertRaises(ValueError, abc.union, new_set, def_)
+        self.assertRaises(ValueError, abc.difference, new_set, def_)
+        self.assertRaises(ValueError, abc.intersection, new_set, def_)
+
+        self.assert_(isinstance(abc.union('new_set', def_), cont.Set))
+        self.assert_(isinstance(abc.intersection('new_set', def_), cont.Set))
+        self.assert_(isinstance(abc.difference('new_set', def_), cont.Set))
 
 class ListTestCase(unittest.TestCase):
     def setUp(self):
