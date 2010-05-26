@@ -211,6 +211,16 @@ class Model(object):
 
 
     @property
+    def attributes_dict(self):
+        h = self.db.hgetall(self.key())
+        for k in self.lists.keys():
+            h[k] = getattr(self, k)
+        for k in self.references.keys():
+            h[k] = getattr(self, k)
+        return h
+
+
+    @property
     def id(self):
         """Returns the id of the instance.
 
@@ -445,6 +455,9 @@ class Model(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __repr__(self):
+        return "<%s %s>" % (self.key(), self.attributes_dict)
 
 
 def get_model_from_key(key):

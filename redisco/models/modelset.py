@@ -11,6 +11,7 @@ class ModelSet(Set):
         self.db = model_class._db
         self.key = model_class._key['all']
         self._filters = {}
+        self._exclusions = {}
         self._zfilters = []
         self._ordering = []
         self._limit = None
@@ -31,10 +32,11 @@ class ModelSet(Set):
                 raise IndexError
 
     def __repr__(self):
-        return "<ModelSet %s>" % self.model_class.__name__
-
-    def __str__(self):
-        return "<ModelSet %s>" % self.model_class.__name__
+        if len(self._set) > 30:
+            m = self._set[:30]
+        else:
+            m = self._set
+        return "<ModelSet %s %s>" % (self.model_class.__name__, list(m))
 
     def __iter__(self):
         for id in self._set.members:
@@ -70,6 +72,13 @@ class ModelSet(Set):
         if not clone._filters:
             clone._filters = {}
         clone._filters.update(kwargs)
+        return clone
+
+    def exclude(self, **kwargs):
+        clone = self._clone()
+        if not clone._exclusions:
+            clone._exclusions = {}
+        clone._exclusions.update(kwargs)
         return clone
 
     def zfilter(self, **kwargs):
@@ -125,6 +134,8 @@ class ModelSet(Set):
         s = Set(self.key)
         if self._filters:
             s = self._add_set_filter(s)
+        if self._exclusions:
+            s = self._add_set_exclusions(s)
         self._cached_set = self._order(s.key)
         return self._cached_set
 
@@ -139,6 +150,19 @@ class ModelSet(Set):
             indices.append(index)
         new_set_key = "~%s" % ("+".join([self.key] + indices),)
         s.intersection(new_set_key, *[Set(n) for n in indices])
+        return Set(new_set_key)
+
+    def _add_set_exclusions(self, s):
+        indices = []
+        for k, v in self._exclusions.iteritems():
+            index = self._build_key_from_filter_item(k, v)
+            if k not in self.model_class._indices:
+                raise AttributeNotIndexed(
+                        "Attribute %s is not indexed in %s class." %
+                        (k, self.model_class.__name__))
+            indices.append(index)
+        new_set_key = "~%s" % ("-".join([self.key] + indices),)
+        s.difference(new_set_key, *[Set(n) for n in indices])
         return Set(new_set_key)
 
     def _add_zfilters(self):
@@ -231,6 +255,8 @@ class ModelSet(Set):
         c = klass(self.model_class)
         if self._filters:
             c._filters = self._filters
+        if self._exclusions:
+            c._exclusions = self._exclusions
         if self._zfilters:
             c._zfilters = self._zfilters
         if self._ordering:

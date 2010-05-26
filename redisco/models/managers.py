@@ -30,6 +30,9 @@ class Manager(object):
     def filter(self, **kwargs):
         return self.get_model_set().filter(**kwargs)
 
+    def exclude(self, **kwargs):
+        return self.get_model_set().exclude(**kwargs)
+
     def get_by_id(self, id):
         return self.get_model_set().get_by_id(id)
 

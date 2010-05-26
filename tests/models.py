@@ -117,7 +117,7 @@ class ModelTestCase(RediscoTestCase):
         self.assertTrue(index in db.smembers(key['_indices']))
         self.assertTrue("1" in db.smembers(index))
 
-    def test_find(self):
+    def test_filter(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
         Person.objects.create(first_name="Clark", last_name="Kent")
         Person.objects.create(first_name="Granny", last_name="Mommy")
@@ -134,6 +134,33 @@ class ModelTestCase(RediscoTestCase):
         persons = Person.objects.filter(full_name="Granny Mommy")
         self.assertEqual(1, len(persons))
         self.assertEqual("Granny Mommy", persons[0].full_name())
+
+
+    def test_exclude(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Granny", last_name="Kent")
+        persons = Person.objects.exclude(first_name="Granny")
+
+        self.assertEqual('2', persons[0].id)
+        self.assertEqual(1, len(persons))
+
+        persons = Person.objects.exclude(first_name="Clark")
+        self.assertEqual(3, len(persons))
+
+        # by index
+        persons = Person.objects.exclude(full_name="Granny Mommy")
+        self.assertEqual(3, len(persons))
+        self.assertEqual("Granny Goose", persons[0].full_name())
+        self.assertEqual("Clark Kent", persons[1].full_name())
+        self.assertEqual("Granny Kent", persons[2].full_name())
+
+        # mixed
+        Person.objects.create(first_name="Granny", last_name="Pacman")
+        persons = (Person.objects.filter(first_name="Granny")
+                    .exclude(last_name="Mommy"))
+        self.assertEqual(3, len(persons))
 
     
     def test_first(self):
