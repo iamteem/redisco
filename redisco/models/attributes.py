@@ -14,12 +14,14 @@ class Attribute(object):
                  indexed=True,
                  required=False,
                  validator=None,
+                 unique=False,
                  default=None):
         self.name = name
         self.indexed = indexed
         self.required = required
         self.validator = validator
         self.default = default
+        self.unique = unique
 
     def __get__(self, instance, owner):
         try:
@@ -61,6 +63,11 @@ class Attribute(object):
         if self.required:
             if val is None or not unicode(val).strip():
                 errors.append((self.name, 'required'))
+        # validate uniquness
+        if val and self.unique:
+            error = self.validate_uniqueness(instance, val)
+            if error:
+                errors.append(error)
         # validate using validator
         if self.validator:
             r = self.validator(self.name, val)
@@ -68,6 +75,12 @@ class Attribute(object):
                 errors.extend(r)
         if errors:
             raise FieldValidationError(errors)
+
+    def validate_uniqueness(self, instance, val):
+        encoded = self.typecast_for_storage(val)
+        same = len(instance.__class__.objects.filter(**{self.name: encoded}))
+        if same > 0:
+            return (self.name, 'not unique',)
 
 
 class BooleanField(Attribute):

@@ -351,6 +351,20 @@ class ModelTestCase(RediscoTestCase):
         from redisco.models.exceptions import BadKeyError
         self.assertRaises(BadKeyError, boom)
 
+    def test_uniqueness_validation(self):
+        class Student(models.Model):
+            student_id = models.Attribute(unique=True)
+
+        student = Student.objects.create(student_id="042231")
+        self.assert_(student)
+
+        student = Student(student_id="042231")
+        self.assertFalse(student.is_valid())
+        self.assert_(('student_id', 'not unique') in student.errors)
+
+        student = Student()
+        self.assertTrue(student.is_valid())
+
 
 class Event(models.Model):
     name = models.Attribute(required=True)

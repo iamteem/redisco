@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-version = '0.1.dev9'
+version = '0.1.dev10'
 import os
 
 try:

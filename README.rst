@@ -81,12 +81,42 @@ ListField
 Attribute Options
 -----------------
 
-Options for creating attributes include required, default, indexed, and validator.
-DateField and DateTimeField have auto_now_add and auto_now options.
+required
+    If True, the attirbute cannot be None or empty. Strings are stripped to
+    check if they are empty. Default is False.
+
+default
+    Sets the default value of the attribute. Default is None.
+
+indexed
+    If True, redisco will create index entries for the attribute. Indexes
+    are used in filtering and ordering results of queries. For large bodies
+    of strings, this should be set to False. Default is True.
+
+validator
+    Set this to a callable that accepts two arguments -- the field name and
+    the value of the attribute. The callable should return a list of tuples
+    with the first item is the field name, and the second item is the error.
+
+unique
+    The field must be unique. Default is False.
+
+DateField and DateTimeField Options
+
+auto_now_add
+    Automatically set the datetime/date field to now/today when the object
+    is first created. Default is False.
+
+auto_now
+    Automatically set the datetime/date field to now/today everytime the object
+    is saved. Default is False.
 
 
 Saving and Validating
 ---------------------
+
+To save an object, call its save method. This returns True on success (i.e. when
+the object is valid) and False otherwise.
 
 Calling Model.is_valid will validate the attributes and lists. Model.is_valid
 is called when the instance is being saved. When there are invalid fields,
@@ -123,9 +153,6 @@ Example
     >>> person.errors
     [('name', 'it is me')]
 
-
-To save an object, call its save method. This returns True on success (i.e. when
-the object is valid), otherwise it returns False.
 
 Queries
 -------
