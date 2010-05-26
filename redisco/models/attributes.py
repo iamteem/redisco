@@ -109,7 +109,7 @@ class FloatField(Attribute):
     def typecast_for_storage(self, value):
         if value is None:
             return "0"
-        return unicode(value)
+        return "%f" % value
 
     def value_type(self):
         return float
