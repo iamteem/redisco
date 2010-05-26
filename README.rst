@@ -30,7 +30,7 @@ Example
     from redisco import models
     class Person(models.Model):
         name = models.Attribute(required=True)
-        created_at = models.DateTimeField(auto_add=True)
+        created_at = models.DateTimeField(auto_now_add=True)
         fave_colors = models.ListField(str)
 
     >>> person = Person(name="Conchita")
@@ -62,7 +62,7 @@ Counter
 DateTimeField
     Can store a DateTime object. Saved in the Redis store as a float.
 
-DateFieldDate
+DateField
     Can store a Date object. Saved in Redis as a float.
 
 FloatField
@@ -123,6 +123,9 @@ Example
     >>> person.errors
     [('name', 'it is me')]
 
+
+To save an object, call its save method. This returns True on success (i.e. when
+the object is valid), otherwise it returns False.
 
 Queries
 -------
@@ -221,6 +224,29 @@ Sorted Sets
     >>> zset.add('d', 99)
     >>> zset.members
     ['a', 'b', 'c', 'd', 'f']
+
+
+Connecting to Redis
+-------------------
+
+All models and containers use a global Redis client object to
+interact with the key-value storage. By default, it connects
+to localhost:6379, selecting db 0. If you wish to specify settings:
+
+::
+    
+    from redisco.connection import connect
+    connect(host='localhost', port=6380, db=10)
+
+The arguments to connect are simple passed to the redis.Redis init method.
+
+For the containers, you can specify a second option for the Redis client,
+and that connection will be used.
+
+::
+    >>> import redis
+    >>> r = redis.Redis(host='localhost', port=6381)
+    >>> Set('someset', r)
 
 
 
