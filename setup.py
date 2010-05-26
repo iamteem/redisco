@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 
-version = '0.1.dev8'
+version = '0.1.dev9'
+import os
 
 try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
 
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 setup(name='redisco',
       version=version,
       description='Python Containers and Simple Models for Redis',
       url='http://github.com/iamteem/redisco',
       download_url='',
-      long_description=open('README.rst').read(),
+      long_description=read('README.rst'),
       author='Tim Medina',
       author_email='iamteem@gmail.com',
       maintainer='Tim Medina',
