@@ -404,6 +404,33 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual(14782201061, t.status_id)
 
 
+    def test_slicing(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Lois", last_name="Kent")
+        Person.objects.create(first_name="Jonathan", last_name="Kent")
+        Person.objects.create(first_name="Martha", last_name="Kent")
+        Person.objects.create(first_name="Lex", last_name="Luthor")
+        Person.objects.create(first_name="Lionel", last_name="Luthor")
+
+        # no slice
+        a = Person.objects.all()
+        self.assertEqual(8, len(a))
+        self.assertEqual(Person.objects.get_by_id('1'), a[0])
+        self.assertEqual("Lionel Luthor", a[7].full_name())
+
+        a = Person.objects.all()[3:]
+        self.assertEqual(5, len(a))
+        self.assertEqual(Person.objects.get_by_id('4'), a[0])
+        self.assertEqual("Lionel Luthor", a[4].full_name())
+
+        a = Person.objects.all()[:6]
+        self.assertEqual(7, len(a))
+        self.assertEqual(Person.objects.get_by_id('1'), a[0])
+        self.assertEqual("Lex Luthor", a[6].full_name())
+
+
 class Event(models.Model):
     name = models.Attribute(required=True)
     date = models.DateField(required=True)

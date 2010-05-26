@@ -23,7 +23,7 @@ class ModelSet(Set):
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            return self.limit(slice.start, slice.stop)
+            return map(lambda id: self._get_item_with_id(id), self._set[index])
         else:
             id = self._set[index]
             if id:
@@ -36,7 +36,8 @@ class ModelSet(Set):
             m = self._set[:30]
         else:
             m = self._set
-        return "<ModelSet %s %s>" % (self.model_class.__name__, list(m))
+        s = map(lambda id: self._get_item_with_id(id), m)
+        return "%s" % s
 
     def __iter__(self):
         for id in self._set.members:
