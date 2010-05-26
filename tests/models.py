@@ -365,6 +365,17 @@ class ModelTestCase(RediscoTestCase):
         student = Student()
         self.assertTrue(student.is_valid())
 
+    def test_long_integers(self):
+        class Tweet(models.Model):
+            status_id = models.IntegerField()
+
+        t = Tweet(status_id=int(u'14782201061'))
+        self.assertTrue(t.is_valid())
+        t.save()
+
+        t = Tweet.objects.get_by_id(t.id)
+        self.assertEqual(14782201061, t.status_id)
+
 
 class Event(models.Model):
     name = models.Attribute(required=True)

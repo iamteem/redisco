@@ -112,7 +112,7 @@ class IntegerField(Attribute):
         return int
 
     def acceptable_types(self):
-        return self.value_type()
+        return (int, long)
 
 
 class FloatField(Attribute):
