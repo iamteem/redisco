@@ -238,12 +238,11 @@ to localhost:6379, selecting db 0. If you wish to specify settings:
     from redisco.connection import connect
     connect(host='localhost', port=6380, db=10)
 
-The arguments to connect are simple passed to the redis.Redis init method.
+The arguments to connect are simply passed to the redis.Redis init method.
 
-For the containers, you can specify a second option for the Redis client,
-and that connection will be used.
+For the containers, you can specify a second argument as the Redis client.
+That client object will be used instead of the default.
 
-::
     >>> import redis
     >>> r = redis.Redis(host='localhost', port=6381)
     >>> Set('someset', r)
