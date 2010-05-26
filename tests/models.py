@@ -1,9 +1,12 @@
+import time
+from threading import Thread
 import base64
 import redis
 import unittest
 from datetime import date
 from redisco import models
 from redisco.connection import _get_client
+from redisco.models.base import Mutex
 
 class Person(models.Model):
     first_name = models.Attribute()
@@ -655,3 +658,37 @@ class CounterFieldTestCase(RediscoTestCase):
         post.decr('liked', 2)
         post = Post.objects.get_by_id(post.id)
         self.assertEqual(1, post.liked)
+
+
+class MutexTestCase(RediscoTestCase):
+
+    def setUp(self):
+        super(MutexTestCase, self).setUp()
+        self.p1 = Person.objects.create(first_name="Dick")
+        self.p2 = Person.objects.get_by_id(self.p1.id)
+
+    def test_instance_should_not_modify_locked(self):
+        time1, time2 = {}, {}
+
+        def f1(person, t):
+            with Mutex(person):
+                time.sleep(0.4)
+                t['time'] = time.time()
+
+        def f2(person, t):
+            with Mutex(person):
+                t['time'] = time.time()
+
+        t1 = Thread(target=f1, args=(self.p1, time1,))
+        t2 = Thread(target=f2, args=(self.p2, time2,))
+        t1.start()
+        time.sleep(0.1)
+        t2.start()
+        t1.join()
+        t2.join()
+        self.assert_(time2['time'] > time1['time'])
+
+    def test_lock_expired(self):
+        Mutex(self.p1).lock()
+        with Mutex(self.p2):
+            self.assert_(True)

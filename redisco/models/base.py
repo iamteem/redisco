@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, date
 from redisco.connection import _get_client
 from redisco.containers import Set, List, SortedSet, NonPersistentList
@@ -172,12 +173,19 @@ class Model(object):
         """Saves the instance to the datastore."""
         if not self.is_valid():
             return None
-        self._write()
+        _new = self.is_new()
+        if _new:
+            self._initialize_id()
+        with Mutex(self):
+            self._write(_new)
         return True
 
-    def key(self):
+    def key(self, att=None):
         """Returns the Redis key where the values are stored."""
-        return self._key[self.id]
+        if att is not None:
+            return self._key[self.id][att]
+        else:
+            return self._key[self.id]
 
     def delete(self):
         """Deletes the object from the datastore."""
@@ -278,15 +286,12 @@ class Model(object):
         """Initializes the id of the instance."""
         self.id = str(self.db.incr(self._key['id']))
 
-    def _write(self):
+    def _write(self, _new=False):
         """Writes the values of the attributes to the datastore.
 
         This method also creates the indices and saves the lists
         associated to the object.
         """
-        _new = self.is_new()
-        if _new:
-            self._initialize_id()
         self._create_membership()
         self._update_indices()
         h = {}
@@ -428,7 +433,6 @@ class Model(object):
     def _index_key_for_attr_val(self, att, val):
         return self._key[att][_encode_key(str(val))]
 
-
     ##################
     # Python methods #
     ##################
@@ -462,3 +466,44 @@ def from_key(key):
     except ValueError, TypeError:
         raise BadKeyError
     return model.objects.get_by_id(id)
+
+
+class Mutex(object):
+    """Implements locking so that other instances may not modify it.
+
+    Code ported from Ohm.
+    """
+    def __init__(self, instance):
+        self.instance = instance
+
+    def __enter__(self):
+        self.lock()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.unlock()
+
+    def lock(self):
+        o = self.instance
+        while not o.db.setnx(o.key('_lock'), self.lock_timeout):
+            lock = o.db.get(o.key('_lock'))
+            if not lock:
+                continue
+            if not self.lock_has_expired(lock):
+                time.sleep(0.5)
+                continue
+            lock = o.db.getset(o.key('_lock'), self.lock_timeout)
+            if not lock:
+                break
+            if self.lock_has_expired(lock):
+                break
+
+    def lock_has_expired(self, lock):
+        return float(lock) < time.time()
+
+    def unlock(self):
+        self.instance.db.delete(self.instance.key('_lock'))
+
+    @property
+    def lock_timeout(self):
+        return "%f" % (time.time() + 1.0)

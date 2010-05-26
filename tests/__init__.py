@@ -4,7 +4,7 @@ connect(host='localhost', port=6380, db=10)
 from containers import SetTestCase, ListTestCase, SortedSetTestCase
 from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
         BooleanFieldTestCase, ListFieldTestCase, ReferenceFieldTestCase,
-        DateTimeFieldTestCase, CounterFieldTestCase)
+        DateTimeFieldTestCase, CounterFieldTestCase, MutexTestCase)
 
 def all_tests():
     suite = unittest.TestSuite()
@@ -19,4 +19,5 @@ def all_tests():
     suite.addTest(unittest.makeSuite(ReferenceFieldTestCase))
     suite.addTest(unittest.makeSuite(DateTimeFieldTestCase))
     suite.addTest(unittest.makeSuite(CounterFieldTestCase))
+    suite.addTest(unittest.makeSuite(MutexTestCase))
     return suite
