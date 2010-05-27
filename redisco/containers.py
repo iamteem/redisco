@@ -1,3 +1,4 @@
+from functools import partial
 from connection import _get_client
 
 class Container(object):
@@ -21,6 +22,14 @@ class Container(object):
     def clear(self):
         """Remove container from Redis database."""
         del self.db[self.key]
+
+    def __getattribute__(self, att):
+        if att in object.__getattribute__(self, 'DELEGATEABLE_METHODS'):
+            return partial(getattr(object.__getattribute__(self, 'db'), att), self.key)
+        else:
+            return object.__getattribute__(self, att)
+
+    DELEGATEABLE_METHODS = ()
 
 
 class Set(Container):
@@ -163,6 +172,10 @@ class Set(Container):
         for e in m:
             yield e
 
+    DELEGATEABLE_METHODS = ('sadd', 'srem', 'spop', 'smembers',
+            'scard', 'sismember', 'srandmember')
+
+
 class List(Container):
 
     def all(self):
@@ -244,6 +257,8 @@ class List(Container):
         for e in range(len(m)):
             yield m[e]
 
+    DELEGATEABLE_METHODS = ('lrange', 'lpush', 'rpush', 'llen',
+            'ltrim', 'lindex', 'lset', 'lpop', 'lrem', 'rpop',)
 
 class SortedSet(Container):
 
@@ -327,6 +342,10 @@ class SortedSet(Container):
     def eq(self, value):
         return self.db.zrangebyscore(self.key, value, value)
 
+    DELEGATEABLE_METHODS = ('zadd', 'zrem', 'zincrby', 'zrank',
+            'zrevrank', 'zrange', 'zrangebyscore', 'zcard',
+            'zscore', 'zremrangebyrank', 'zremrangebyscore')
+
 
 class NonPersistentList(object):
     def __init__(self, l):
@@ -341,3 +360,16 @@ class NonPersistentList(object):
 
     def __len__(self):
         return len(self._list)
+
+
+class Hash(Container):
+
+    def __getitem__(self, att):
+        return self.db.hget(self.key, att)
+
+    def __setitem__(self, att, val):
+        self.db.hset(self.key, att, val)
+
+    def __contains__(self, att):
+        pass
+

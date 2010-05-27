@@ -147,6 +147,24 @@ class SetTestCase(unittest.TestCase):
         self.assert_(isinstance(abc.intersection('new_set', def_), cont.Set))
         self.assert_(isinstance(abc.difference('new_set', def_), cont.Set))
 
+
+    def test_access_redis_methods(self):
+        s = cont.Set('new_set')
+        s.sadd('a')
+        s.sadd('b')
+        s.srem('b')
+        self.assertEqual('a', s.spop())
+        s.sadd('a')
+        self.assert_('a' in s.smembers())
+        s.sadd('b')
+        self.assertEqual(2, s.scard())
+        self.assert_(s.sismember('a'))
+        self.client.sadd('other_set', 'a')
+        self.client.sadd('other_set', 'b')
+        self.client.sadd('other_set', 'c')
+        self.assert_(s.srandmember() in set(['a', 'b']))
+
+
 class ListTestCase(unittest.TestCase):
     def setUp(self):
         self.client = _get_client()
@@ -217,6 +235,23 @@ class ListTestCase(unittest.TestCase):
         alpha.reverse()
         self.assertEqual(['E', 'D', 'C', 'B', 'A'], list(alpha))
 
+    def test_delegateable_methods(self):
+        l = cont.List('mylist')
+        self.assertEqual([], l.lrange(0, -1))
+        l.rpush('b')
+        l.rpush('c')
+        l.lpush('a')
+        self.assertEqual(['a', 'b', 'c'], l.lrange(0, -1))
+        self.assertEqual(3, l.llen())
+        l.ltrim(1, 2)
+        self.assertEqual(['b', 'c'], l.lrange(0, -1))
+        self.assertEqual('c', l.lindex(1))
+        self.assertEqual(1, l.lset(0, 'a'))
+        self.assertEqual(1, l.lset(1, 'b'))
+        self.assertEqual(['a', 'b'], l.lrange(0, -1))
+        self.assertEqual('a', l.lpop())
+        self.assertEqual('b', l.rpop())
+
 
 class SortedSetTestCase(unittest.TestCase):
     def setUp(self):
@@ -245,4 +280,22 @@ class SortedSetTestCase(unittest.TestCase):
         self.assertEqual(["4", "7"], zorted.eq(35))
         self.assertEqual(["6", "3", "1"], zorted.lt(30))
         self.assertEqual(["4", "7", "2", "5"], zorted.gt(30))
+
+    def test_delegateable_methods(self):
+        zset = cont.SortedSet("Person:all")
+        zset.zadd("1", 1)
+        zset.zadd("2", 2)
+        zset.zadd("3", 3)
+        zset.zadd("4", 4)
+        self.assertEqual(4, zset.zcard())
+        self.assertEqual(4, zset.zscore('4'))
+
+
+class HashTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = _get_client()
+        self.client.flushdb()
+
+    def tearDown(self):
+        self.client.flushdb()
 
