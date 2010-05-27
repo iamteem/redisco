@@ -430,6 +430,21 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual(Person.objects.get_by_id('1'), a[0])
         self.assertEqual("Lex Luthor", a[6].full_name())
 
+    def test_get_or_create(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Lois", last_name="Kent")
+        Person.objects.create(first_name="Jonathan", last_name="Kent")
+        Person.objects.create(first_name="Martha", last_name="Kent")
+
+        p = Person.objects.get_or_create(first_name="Lois",
+                last_name="Kent")
+        self.assertEqual('4', p.id)
+        p = Person.objects.get_or_create(first_name="Jonathan",
+                last_name="Weiss")
+        self.assertEqual('7', p.id)
+
 
 class Event(models.Model):
     name = models.Attribute(required=True)

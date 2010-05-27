@@ -120,6 +120,18 @@ class ModelSet(Set):
     def all(self):
         return self._clone()
 
+    def get_or_create(self, **kwargs):
+        opts = {}
+        for k, v in kwargs.iteritems():
+            if k in self.model_class._indices:
+                opts[k] = v
+        o = self.filter(**opts).first()
+        if o:
+            return o
+        else:
+            return self.create(**kwargs)
+
+
     ###################
     # PRIVATE METHODS #
     ###################

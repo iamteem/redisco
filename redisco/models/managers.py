@@ -27,6 +27,9 @@ class Manager(object):
     def create(self, **kwargs):
         return self.get_model_set().create(**kwargs)
 
+    def get_or_create(self, **kwargs):
+        return self.get_model_set().get_or_create(**kwargs)
+
     def filter(self, **kwargs):
         return self.get_model_set().filter(**kwargs)
 
