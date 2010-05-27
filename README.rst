@@ -23,7 +23,6 @@ Then install redisco.
 
 Models
 ------
-Example
 
 ::
 
@@ -131,8 +130,6 @@ of the attribute. The callable should return a list of errors.
 Model.validate will also be called before saving the instance. Override it
 to validate instances not related to attributes.
 
-Example
-
 ::
 
     def not_me(field_name, value):
@@ -159,8 +156,6 @@ Queries
 
 Queries are executed using a manager, accessed via the objects class
 attribute.
-
-Examples
 
 ::
 
@@ -192,7 +187,6 @@ persisted to Redis.
 
 Sets
 ----
-    >>> import redis
     >>> from redisco.containers import Set
     >>> s = Set('myset')
     >>> s.add('apple')
@@ -210,7 +204,6 @@ Sets
 
 Lists
 -----
-
     >>> import redis
     >>> from redisco.containers import List
     >>> l = List('alpha')
@@ -231,7 +224,6 @@ Lists
 
 Sorted Sets
 -----------
-
     >>> zset = SortedSet('zset')
     >>> zset.members
     ['d', 'a', 'b', 'c']
@@ -251,6 +243,21 @@ Sorted Sets
     >>> zset.add('d', 99)
     >>> zset.members
     ['a', 'b', 'c', 'd', 'f']
+
+Additional Info on Containers
+-----------------------------
+
+Some methods of the Redis client that require the key as the first argument
+can be accessed from the container itself.
+
+    >>> l = List('mylist')
+    >>> l.lrange(0, -1)
+    0
+    >>> l.rpush('b')
+    >>> l.rpush('c')
+    >>> l.lpush('a')
+    >>> l.lrange(0, -1)
+    ['a', 'b', 'c']
 
 
 Connecting to Redis
@@ -275,7 +282,15 @@ That client object will be used instead of the default.
     >>> Set('someset', r)
 
 
+Credits
+-------
+
+Most of the concepts are taken from `Soveran`_'s Redis related Ruby libraries.
+cyx_ for sharing his expertise in indexing in Redis.
+Django, of course, for the popular model API.
 
 .. _Redis: http://code.google.com/p/redis/
 .. _Ohm: http://github.com/soveran/ohm/
 .. _redis-py: http://github.com/andymccurdy/redis-py/
+.. _`Soveran`: http://github.com/soveran
+.. _cyx: http://github.com/cyx
