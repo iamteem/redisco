@@ -1,2 +1,5 @@
+build
+dist
+redisco.egg-info
 *.pyc
 .DS_Store
