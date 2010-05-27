@@ -1,3 +1,4 @@
+import collections
 from functools import partial
 from connection import _get_client
 
@@ -362,14 +363,40 @@ class NonPersistentList(object):
         return len(self._list)
 
 
-class Hash(Container):
+class Hash(Container, collections.MutableMapping):
+    """Dict storage."""
 
     def __getitem__(self, att):
-        return self.db.hget(self.key, att)
+        return self.hget(att)
 
     def __setitem__(self, att, val):
-        self.db.hset(self.key, att, val)
+        self.hset(att, val)
+
+    def __delitem__(self, att):
+        self.hdel(att)
+
+    def __len__(self):
+        return self.hlen()
+
+    def __iter__(self):
+        return self.hgetall().__iter__()
 
     def __contains__(self, att):
-        pass
+        return self.hexists(att)
 
+    def __repr__(self):
+        return "<%s '%s' %s>" % (self.__class__.__name__, self.key, self.hgetall())
+
+    def keys(self):
+        return self.hkeys()
+
+    def values(self):
+        return self.hvals()
+
+    @property
+    def dict(self):
+        return self.hgetall()
+
+
+    DELEGATEABLE_METHODS = ('hlen', 'hset', 'hdel', 'hkeys',
+            'hgetall', 'hvals', 'hget', 'hexists')

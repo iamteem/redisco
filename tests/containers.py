@@ -299,3 +299,25 @@ class HashTestCase(unittest.TestCase):
     def tearDown(self):
         self.client.flushdb()
 
+    def test_basic(self):
+        h = cont.Hash('hkey')
+        self.assertEqual(0, len(h))
+        h['name'] = "Richard Cypher"
+        h['real_name'] = "Richard Rahl"
+
+        pulled = self.client.hgetall('hkey')
+        self.assertEqual({'name': "Richard Cypher",
+            'real_name': "Richard Rahl"}, pulled)
+
+        self.assertEqual({'name': "Richard Cypher",
+            'real_name': "Richard Rahl"}, h.dict)
+
+        self.assertEqual(['name', 'real_name'], h.keys())
+        self.assertEqual(["Richard Cypher", "Richard Rahl"],
+            h.values())
+
+        del h['name']
+        pulled = self.client.hgetall('hkey')
+        self.assertEqual({'real_name': "Richard Rahl"}, pulled)
+
+        self.assert_('real_name' in h)

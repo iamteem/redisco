@@ -244,6 +244,19 @@ Sorted Sets
     >>> zset.members
     ['a', 'b', 'c', 'd', 'f']
 
+
+Dicts/Hashes
+    >>> h = cont.Hash('hkey')
+    >>> len(h)
+    0
+    >>> h['name'] = "Richard Cypher"
+    >>> h['real_name'] = "Richard Rahl"
+    >>> h
+    <Hash 'hkey' {'name': 'Richard Cypher', 'real_name': 'Richard Rahl'}>
+    >>> h.dict
+    {'name': 'Richard Cypher', 'real_name': 'Richard Rahl'}
+
+
 Additional Info on Containers
 -----------------------------
 
@@ -258,6 +271,10 @@ can be accessed from the container itself.
     >>> l.lpush('a')
     >>> l.lrange(0, -1)
     ['a', 'b', 'c']
+    >>> h = Hash('hkey')
+    >>> h.hset('name', 'Richard Rahl')
+    >>> h
+    <Hash 'hkey' {'name': 'Richard Rahl'}>
 
 
 Connecting to Redis
