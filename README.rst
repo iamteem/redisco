@@ -186,7 +186,6 @@ structures: lists, sets, sorted set. Anything done to the container is
 persisted to Redis.
 
 Sets
-----
     >>> from redisco.containers import Set
     >>> s = Set('myset')
     >>> s.add('apple')
@@ -203,7 +202,6 @@ Sets
     set(['kiwi', 'orange', 'guava', 'apple'])
 
 Lists
------
     >>> import redis
     >>> from redisco.containers import List
     >>> l = List('alpha')
@@ -223,7 +221,6 @@ Lists
 
 
 Sorted Sets
------------
     >>> zset = SortedSet('zset')
     >>> zset.members
     ['d', 'a', 'b', 'c']
