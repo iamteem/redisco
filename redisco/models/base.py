@@ -25,6 +25,9 @@ def _initialize_attributes(model_class, name, bases, attrs):
             v.name = v.name or k
 
 def _initialize_referenced(model_class, attribute):
+    """Adds a property to the target of a reference field that
+    returns the list of associated objects.
+    """
     # this should be a descriptor
     def _related_objects(self):
         return (model_class.objects
@@ -40,6 +43,7 @@ def _initialize_referenced(model_class, attribute):
                 property(_related_objects))
 
 def _initialize_lists(model_class, name, bases, attrs):
+    """Stores the list fields descriptors of a model."""
     model_class._lists = {}
     for k, v in attrs.iteritems():
         if isinstance(v, ListField):
@@ -47,6 +51,7 @@ def _initialize_lists(model_class, name, bases, attrs):
             v.name = v.name or k
 
 def _initialize_references(model_class, name, bases, attrs):
+    """Stores the list of reference field descriptors of a model."""
     model_class._references = {}
     h = {}
     deferred = []
@@ -64,33 +69,53 @@ def _initialize_references(model_class, name, bases, attrs):
     return deferred
 
 def _initialize_indices(model_class, name, bases, attrs):
+    """Stores the list of indexed attributes."""
     model_class._indices = []
     for k, v in attrs.iteritems():
-        if isinstance(v, Attribute) and v.indexed:
+        if isinstance(v, (Attribute, ListField)) and v.indexed:
             model_class._indices.append(k)
-        elif isinstance(v, ListField) and v.indexed:
-            model_class._indices.append(k)
-
     if model_class._meta['indices']:
         model_class._indices.extend(model_class._meta['indices'])
 
 def _initialize_counters(model_class, name, bases, attrs):
+    """Stores the list of counter fields."""
     model_class._counters = []
     for k, v in attrs.iteritems():
         if isinstance(v, Counter):
             model_class._counters.append(k)
 
 def _initialize_key(model_class, name):
+    """Initializes the key of the model."""
     model_class._key = Key(name)
 
 def _initialize_db(model_class):
+    """Initializes the Redis client object to be used by the
+    model.
+
+    If there is a db field in the Meta class defined in the
+    model, it uses it. Otherwise, it gets the default client.
+
+    """
     model_class._db = model_class._meta['db'] or _get_client()
 
 def _initialize_manager(model_class):
+    """Initializes the objects manager attribute of the model."""
     model_class.objects = ManagerDescriptor(Manager(model_class))
 
 
 class ModelOptions(object):
+    """Handles options defined in Meta class of the model.
+
+    Example:
+
+        class Person(models.Model):
+            name = models.Attribute()
+
+            class Meta:
+                indices = ('full_name',)
+                db = redis.Redis(host='localhost', port=29909)
+
+    """
     def __init__(self, meta):
         self.meta = meta
 
@@ -107,6 +132,8 @@ class ModelOptions(object):
 _deferred_refs = []
 
 class ModelBase(type):
+    """Metaclass of the Model."""
+
     def __init__(cls, name, bases, attrs):
         super(ModelBase, cls).__init__(name, bases, attrs)
         global _deferred_refs
@@ -135,6 +162,11 @@ class Model(object):
         self.update_attributes(**kwargs)
 
     def is_valid(self):
+        """Returns True if all the fields are valid.
+
+        It first validates the fields (required, unique, etc.)
+        and then calls the validate method.
+        """
         self._errors = []
         for field in self.fields:
             try:
@@ -207,11 +239,15 @@ class Model(object):
         self.db.hincrby(self.key(), att, val)
 
     def decr(self, att, val=1):
+        """Decrements a counter."""
         self.incr(att, -1 * val)
 
 
     @property
     def attributes_dict(self):
+        """Returns the mapping of the model attributes and their
+        values.
+        """
         h = self.db.hgetall(self.key())
         for k in self.lists.keys():
             h[k] = getattr(self, k)
@@ -246,7 +282,7 @@ class Model(object):
 
     @property
     def lists(cls):
-        """Return the lists of the model.
+        """Returns the lists of the model.
 
         Returns a dict with models attribute name as keys
         and ListField descriptors as values.
@@ -260,23 +296,28 @@ class Model(object):
 
     @property
     def references(cls):
+        """Returns the mapping of reference fields of the model."""
         return cls._references
 
     @property
     def db(cls):
+        """Returns the Redis client used by the model."""
         return cls._db
 
     @property
     def errors(self):
+        """Returns the list of errors after validation."""
         return self._errors
 
     @property
     def fields(self):
+        """Returns the list of field names of the model."""
         return (self.attributes.values() + self.lists.values()
                 + self.references.values())
 
     @property
     def counters(cls):
+        """Returns the mapping of the counters."""
         return cls._counters
 
     #################
@@ -285,6 +326,7 @@ class Model(object):
 
     @classmethod
     def exists(cls, id):
+        """Checks if the model with id exists."""
         return bool(cls._db.exists(cls._key[str(id)]) or
                     cls._db.sismember(cls._key['all'], str(id)))
 
@@ -348,9 +390,15 @@ class Model(object):
     ##############
 
     def _create_membership(self):
+        """Adds the id of the object to the set of all objects of the same
+        class.
+        """
         Set(self._key['all']).add(self.id)
 
     def _delete_membership(self):
+        """Removes the id of the object to the set of all objects of the
+        same class.
+        """
         Set(self._key['all']).remove(self.id)
 
 
@@ -359,6 +407,7 @@ class Model(object):
     ############
 
     def _update_indices(self):
+        """Updates the indices of the object."""
         self._delete_from_indices()
         self._add_to_indices()
 
@@ -397,6 +446,9 @@ class Model(object):
 
 
     def _delete_from_indices(self):
+        """Deletes the object's id from the sets(indices) it has been added
+        to and removes its list of indices (used for housekeeping).
+        """
         s = Set(self.key()['_indices'])
         z = Set(self.key()['_zindices'])
         pipe = s.db.pipeline()
@@ -409,6 +461,10 @@ class Model(object):
         pipe.execute()
 
     def _index_key_for(self, att, value=None):
+        """Returns a key based on the attribute and its value.
+
+        The key is used for indexing.
+        """
         if value is None:
             value = getattr(self, att)
             if callable(value):
@@ -461,6 +517,7 @@ class Model(object):
 
 
 def get_model_from_key(key):
+    """Gets the model from a given key."""
     _known_models = {}
     model_name = key.split(':', 2)[0]
     # populate
@@ -470,6 +527,12 @@ def get_model_from_key(key):
 
 
 def from_key(key):
+    """Returns the model instance based on the key.
+
+    Raises BadKeyError if the key is not recognized by
+    redisco or no defined model can be found.
+    Returns None if the key could not be found.
+    """
     model = get_model_from_key(key)
     if model is None:
         raise BadKeyError

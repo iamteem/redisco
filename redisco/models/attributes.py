@@ -1,3 +1,6 @@
+"""
+Defines the fields that can be added to redisco models.
+"""
 import time
 from datetime import datetime, date
 from redisco.containers import List
@@ -9,6 +12,23 @@ __all__ = ['Attribute', 'ListField', 'DateTimeField',
 
 
 class Attribute(object):
+    """Defines an attribute of the model.
+
+    The attribute accepts strings and are stored in Redis as
+    they are - strings.
+
+    Options
+        name      -- alternate name of the attribute. This will be used
+                     as the key to use when interacting with Redis.
+        indexed   -- Index this attribute. Unindexed attributes cannot
+                     be used in queries. Default: True.
+        unique    -- validates the uniqueness of the value of the
+                     attribute.
+        validator -- a callable that can validate the value of the
+                     attribute.
+        default   -- Initial value of the attribute.
+
+    """
     def __init__(self,
                  name=None,
                  indexed=True,
@@ -42,9 +62,11 @@ class Attribute(object):
         setattr(instance, '_' + self.name, value)
 
     def typecast_for_read(self, value):
+        """Typecasts the value for reading from Redis."""
         return value
 
     def typecast_for_storage(self, value):
+        """Typecasts the value for storing to Redis."""
         return unicode(value)
     
     def value_type(self):
@@ -186,6 +208,17 @@ class DateField(Attribute):
         return self.value_type()
 
 class ListField(object):
+    """Stores a list of objects.
+
+    target_type -- can be a Python object or a redisco model class.
+
+    If target_type is not a redisco model class, the target_type should
+    also a callable that casts the (string) value of a list element into
+    target_type. E.g. str, unicode, int, float.
+
+    ListField also accepts a string that refers to a redisco model.
+
+    """
     def __init__(self, target_type,
                  name=None,
                  indexed=True,

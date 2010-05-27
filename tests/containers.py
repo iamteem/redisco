@@ -321,3 +321,12 @@ class HashTestCase(unittest.TestCase):
         self.assertEqual({'real_name': "Richard Rahl"}, pulled)
 
         self.assert_('real_name' in h)
+
+    def test_delegateable_methods(self):
+        h = cont.Hash('my_hash')
+        h.hincrby('Red', 1)
+        h.hincrby('Red', 1)
+        h.hincrby('Red', 2)
+        self.assertEqual(4, int(h.hget('Red')))
+        h.hmset({'Blue': 100, 'Green': 19, 'Yellow': 1024})
+        self.assertEqual(['100', '19'], h.hmget(['Blue', 'Green']))
