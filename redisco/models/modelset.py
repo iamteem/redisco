@@ -42,14 +42,14 @@ class ModelSet(Set):
         return "%s" % s
 
     def __iter__(self):
-        for id in self._set.members:
+        for id in self._set:
             yield self._get_item_with_id(id)
 
     def __len__(self):
         return len(self._set)
 
     def __contains__(self, val):
-        return val.id in self._set.members
+        return val.id in self._set
 
     ##########################################
     # METHODS THAT RETURN A SET OF INSTANCES #
@@ -149,14 +149,18 @@ class ModelSet(Set):
         if hasattr(self, '_cached_set'):
             return self._cached_set
         if self._zfilters:
-            self._cached_set = NonPersistentList(self._add_zfilters())
+            self._cached_set = self._add_zfilters()
             return self._cached_set
         s = Set(self.key)
+        self._expire_or_delete = []
         if self._filters:
             s = self._add_set_filter(s)
         if self._exclusions:
             s = self._add_set_exclusions(s)
-        self._cached_set = self._order(s.key)
+        n = self._order(s.key)
+        self._cached_set = list(self._order(s.key))
+        for key in filter(lambda key: key != self.key, self._expire_or_delete):
+            del self.db[key]
         return self._cached_set
 
     def _add_set_filter(self, s):
@@ -170,6 +174,7 @@ class ModelSet(Set):
             indices.append(index)
         new_set_key = "~%s" % ("+".join([self.key] + indices),)
         s.intersection(new_set_key, *[Set(n) for n in indices])
+        self._expire_or_delete.append(new_set_key)
         return Set(new_set_key)
 
     def _add_set_exclusions(self, s):
@@ -183,6 +188,7 @@ class ModelSet(Set):
             indices.append(index)
         new_set_key = "~%s" % ("-".join([self.key] + indices),)
         s.difference(new_set_key, *[Set(n) for n in indices])
+        self._expire_or_delete.append(new_set_key)
         return Set(new_set_key)
 
     def _add_zfilters(self):
@@ -236,6 +242,8 @@ class ModelSet(Set):
                          start=start,
                          num=num,
                          desc=desc)
+            self._expire_or_delete.append(old_set_key)
+            self._expire_or_delete.append(new_set_key)
             return List(new_set_key)
 
     def _set_without_ordering(self, skey):
@@ -247,6 +255,8 @@ class ModelSet(Set):
                      store=new_set_key,
                      start=start,
                      num=num)
+        self._expire_or_delete.append(old_set_key)
+        self._expire_or_delete.append(new_set_key)
         return List(new_set_key)
 
     def _get_limit_and_offset(self):

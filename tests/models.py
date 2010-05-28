@@ -426,9 +426,14 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual("Lionel Luthor", a[4].full_name())
 
         a = Person.objects.all()[:6]
-        self.assertEqual(7, len(a))
+        self.assertEqual(6, len(a))
         self.assertEqual(Person.objects.get_by_id('1'), a[0])
-        self.assertEqual("Lex Luthor", a[6].full_name())
+        self.assertEqual("Martha Kent", a[5].full_name())
+
+        a = Person.objects.all()[2:6]
+        self.assertEqual(4, len(a))
+        self.assertEqual(Person.objects.get_by_id('3'), a[0])
+        self.assertEqual("Martha Kent", a[3].full_name())
 
     def test_get_or_create(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
