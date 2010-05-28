@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 from threading import Thread
 import base64
@@ -53,6 +54,19 @@ class ModelTestCase(RediscoTestCase):
 
         jejomar = Person.objects.get_by_id('2')
         self.assertEqual(None, jejomar.last_name)
+
+    def test_unicode(self):
+        p = Person(first_name="Niña", last_name="Jose")
+        self.assert_(p.save())
+        g = Person.objects.create(first_name="Granny", last_name="Goose")
+        self.assert_(g)
+
+        p = Person.objects.filter(first_name="Niña").first()
+        self.assert_(p)
+        self.assertEqual("Niña Jose", p.full_name())
+
+
+
 
     def test_update(self):
         person1 = Person(first_name="Granny", last_name="Goose")

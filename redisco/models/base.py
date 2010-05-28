@@ -359,7 +359,10 @@ class Model(object):
                 if callable(v):
                     v = v()
                 if v:
-                    h[index] = str(v)
+                    try:
+                        h[index] = unicode(v)
+                    except UnicodeError:
+                        h[index] = unicode(v.decode('utf-8'))
         del self.db[self.key()]
         if h:
             self.db.hmset(self.key(), h)
@@ -489,7 +492,7 @@ class Model(object):
                 (self._key[att], self._index_key_for_attr_val(att, sval)))
 
     def _index_key_for_attr_val(self, att, val):
-        return self._key[att][_encode_key(str(val))]
+        return self._key[att][_encode_key(val)]
 
     ##################
     # Python methods #

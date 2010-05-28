@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
 Defines the fields that can be added to redisco models.
 """
@@ -67,7 +68,10 @@ class Attribute(object):
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to Redis."""
-        return unicode(value)
+        try:
+            return unicode(value)
+        except UnicodeError:
+            return unicode(value.decode('utf-8'))
     
     def value_type(self):
         return unicode

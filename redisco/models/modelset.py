@@ -1,3 +1,6 @@
+"""
+Handles the queries.
+"""
 from attributes import IntegerField, DateTimeField
 import redisco
 from redisco.containers import SortedSet, Set, List, NonPersistentList
