@@ -283,8 +283,8 @@ to localhost:6379, selecting db 0. If you wish to specify settings:
 
 ::
     
-    from redisco.connection import connect
-    connect(host='localhost', port=6380, db=10)
+    import redisco
+    redisco.connection_setup(host='localhost', port=6380, db=10)
 
 The arguments to connect are simply passed to the redis.Redis init method.
 

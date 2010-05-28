@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, date
-from redisco.connection import _get_client
+import redisco
 from redisco.containers import Set, List, SortedSet, NonPersistentList
 from attributes import *
 from key import Key
@@ -88,15 +88,6 @@ def _initialize_key(model_class, name):
     """Initializes the key of the model."""
     model_class._key = Key(name)
 
-def _initialize_db(model_class):
-    """Initializes the Redis client object to be used by the
-    model.
-
-    If there is a db field in the Meta class defined in the
-    model, it uses it. Otherwise, it gets the default client.
-
-    """
-    model_class._db = model_class._meta['db'] or _get_client()
 
 def _initialize_manager(model_class):
     """Initializes the objects manager attribute of the model."""
@@ -145,7 +136,6 @@ class ModelBase(type):
         _initialize_lists(cls, name, bases, attrs)
         _initialize_indices(cls, name, bases, attrs)
         _initialize_key(cls, name)
-        _initialize_db(cls)
         _initialize_manager(cls)
         # if targeted by a reference field using a string,
         # override for next try
@@ -302,7 +292,7 @@ class Model(object):
     @property
     def db(cls):
         """Returns the Redis client used by the model."""
-        return cls._db
+        return redisco.get_client()
 
     @property
     def errors(self):
@@ -327,8 +317,8 @@ class Model(object):
     @classmethod
     def exists(cls, id):
         """Checks if the model with id exists."""
-        return bool(cls._db.exists(cls._key[str(id)]) or
-                    cls._db.sismember(cls._key['all'], str(id)))
+        return bool(redisco.get_client().exists(cls._key[str(id)]) or
+                    redisco.get_client().sismember(cls._key['all'], str(id)))
 
     ###################
     # Private methods #

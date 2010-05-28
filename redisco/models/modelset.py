@@ -1,4 +1,5 @@
 from attributes import IntegerField, DateTimeField
+import redisco
 from redisco.containers import SortedSet, Set, List, NonPersistentList
 from exceptions import AttributeNotIndexed
 from utils import _encode_key
@@ -8,8 +9,8 @@ from attributes import ZINDEXABLE
 class ModelSet(Set):
     def __init__(self, model_class):
         self.model_class = model_class
-        self.db = model_class._db
         self.key = model_class._key['all']
+        self._db = redisco.get_client()
         self._filters = {}
         self._exclusions = {}
         self._zfilters = []
@@ -20,6 +21,7 @@ class ModelSet(Set):
     #################
     # MAGIC METHODS #
     #################
+
 
     def __getitem__(self, index):
         if isinstance(index, slice):
@@ -131,6 +133,11 @@ class ModelSet(Set):
         else:
             return self.create(**kwargs)
 
+    #
+
+    @property
+    def db(self):
+        return self._db
 
     ###################
     # PRIVATE METHODS #

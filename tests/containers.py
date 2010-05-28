@@ -1,10 +1,10 @@
 import unittest
-from redisco.connection import connect, _get_client
+import redisco
 from redisco import containers as cont
 
 class SetTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = _get_client()
+        self.client = redisco.get_client()
         self.client.flushdb()
 
     def tearDown(self):
@@ -167,7 +167,7 @@ class SetTestCase(unittest.TestCase):
 
 class ListTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = _get_client()
+        self.client = redisco.get_client()
         self.client.flushdb()
 
     def tearDown(self):
@@ -255,7 +255,7 @@ class ListTestCase(unittest.TestCase):
 
 class SortedSetTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = _get_client()
+        self.client = redisco.get_client()
         self.client.flushdb()
 
     def tearDown(self):
@@ -293,7 +293,7 @@ class SortedSetTestCase(unittest.TestCase):
 
 class HashTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = _get_client()
+        self.client = redisco.get_client()
         self.client.flushdb()
 
     def tearDown(self):

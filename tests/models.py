@@ -2,10 +2,10 @@ import time
 from threading import Thread
 import base64
 import redis
+import redisco
 import unittest
 from datetime import date
 from redisco import models
-from redisco.connection import _get_client
 from redisco.models.base import Mutex
 
 class Person(models.Model):
@@ -21,7 +21,7 @@ class Person(models.Model):
 
 class RediscoTestCase(unittest.TestCase):
     def setUp(self):
-        self.client = _get_client()
+        self.client = redisco.get_client()
         self.client.flushdb()
 
     def tearDown(self):
@@ -474,12 +474,12 @@ class DateFieldTestCase(RediscoTestCase):
     def test_indexes(self):
         d = date.today()
         Event.objects.create(name="Event #1", date=d)
-        self.assertTrue('1' in Event._db.smembers(Event._key['all']))
+        self.assertTrue('1' in self.client.smembers(Event._key['all']))
         # zfilter index
-        self.assertTrue(Event._db.exists("Event:date"))
+        self.assertTrue(self.client.exists("Event:date"))
         # other field indices
-        self.assertEqual(2, Event._db.scard("Event:1:_indices"))
-        for index in Event._db.smembers("Event:1:_indices"):
+        self.assertEqual(2, self.client.scard("Event:1:_indices"))
+        for index in self.client.smembers("Event:1:_indices"):
             self.assertTrue(index.startswith("Event:date") or
                     index.startswith("Event:name"))
 

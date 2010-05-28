@@ -5,7 +5,6 @@ that persist directly in a Redis server.
 
 import collections
 from functools import partial
-from connection import _get_client
 
 
 class Container(object):
@@ -20,10 +19,7 @@ class Container(object):
     """
 
     def __init__(self, key, db=None):
-        if db is None:
-            self.db = _get_client()
-        else:
-            self.db = db
+        self._db = db
         self.key = key
 
     def clear(self):
@@ -35,6 +31,18 @@ class Container(object):
             return partial(getattr(object.__getattribute__(self, 'db'), att), self.key)
         else:
             return object.__getattribute__(self, att)
+
+
+    @property
+    def db(self):
+        if self._db:
+            return self._db
+        if hasattr(self, 'db_cache') and self.db_cache:
+            return self.db_cache
+        else:
+            from redisco import connection
+            self.db_cache = connection
+            return self.db_cache
 
     DELEGATEABLE_METHODS = ()
 

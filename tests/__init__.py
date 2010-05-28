@@ -1,11 +1,12 @@
 import unittest
-from redisco.connection import connect
-connect(host='localhost', port=6380, db=10)
 from containers import (SetTestCase, ListTestCase, SortedSetTestCase,
         HashTestCase)
 from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
         BooleanFieldTestCase, ListFieldTestCase, ReferenceFieldTestCase,
         DateTimeFieldTestCase, CounterFieldTestCase, MutexTestCase,)
+
+import redisco
+redisco.connection_setup(host="localhost", port=6380, db=10)
 
 def all_tests():
     suite = unittest.TestSuite()
