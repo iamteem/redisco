@@ -472,19 +472,21 @@ class Model(object):
         if value is None:
             return None
         if att not in self.lists:
-            descriptor = self.attributes.get(att)
-            if descriptor:
-                if isinstance(descriptor, ZINDEXABLE):
-                    sval = descriptor.typecast_for_storage(value)
-                    return self._tuple_for_index_key_attr_zset(att, value, sval)
-                else:
-                    val = descriptor.typecast_for_storage(value)
-                    return self._tuple_for_index_key_attr_val(att, val)
-            else:
-                # this should non-attribute index
-                return self._tuple_for_index_key_attr_val(att, value)
+            return self._get_index_key_for_non_list_attr(att, value)
         else:
             return self._tuple_for_index_key_attr_list(att, value)
+
+    def _get_index_key_for_non_list_attr(self, att, value):
+        descriptor = self.attributes.get(att)
+        if descriptor and isinstance(descriptor, ZINDEXABLE):
+            sval = descriptor.typecast_for_storage(value)
+            return self._tuple_for_index_key_attr_zset(att, value, sval)
+        elif descriptor:
+            val = descriptor.typecast_for_storage(value)
+            return self._tuple_for_index_key_attr_val(att, val)
+        else:
+            # this is non-attribute index defined in Meta
+            return self._tuple_for_index_key_attr_val(att, value)
 
     def _tuple_for_index_key_attr_val(self, att, val):
         return ('attribute', self._index_key_for_attr_val(att, val))

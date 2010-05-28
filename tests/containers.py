@@ -319,8 +319,9 @@ class HashTestCase(unittest.TestCase):
         del h['name']
         pulled = self.client.hgetall('hkey')
         self.assertEqual({'real_name': "Richard Rahl"}, pulled)
-
         self.assert_('real_name' in h)
+        h.dict = {"new_hash": "YEY"}
+        self.assertEqual({"new_hash": "YEY"}, h.dict)
 
     def test_delegateable_methods(self):
         h = cont.Hash('my_hash')

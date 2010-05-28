@@ -423,9 +423,15 @@ class Hash(Container, collections.MutableMapping):
     def values(self):
         return self.hvals()
 
-    @property
-    def dict(self):
+    def _get_dict(self):
         return self.hgetall()
+
+    def _set_dict(self, new_dict):
+        self.clear()
+        self.update(new_dict)
+
+    dict = property(_get_dict, _set_dict)
+
 
     DELEGATEABLE_METHODS = ('hlen', 'hset', 'hdel', 'hkeys',
             'hgetall', 'hvals', 'hget', 'hexists', 'hincrby',
