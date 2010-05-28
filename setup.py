@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 
-version = '0.1.dev14'
+version = '0.1.dev15'
 
 try:
     from setuptools import setup
