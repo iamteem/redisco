@@ -5,7 +5,7 @@ Python Containers and Simple Models for Redis
 
 Description
 -----------
-Redisco allows you to store objects in Redis_. It is inspired by Ruby library
+Redisco allows you to store objects in Redis_. It is inspired by the Ruby library
 Ohm_ and its design and code are loosely based on Ohm and the Django ORM.
 It is built on top of redis-py_. It includes container classes that allow
 easier access to Redis sets, lists, and sorted sets.
