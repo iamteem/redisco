@@ -238,7 +238,9 @@ class Model(object):
         """Returns the mapping of the model attributes and their
         values.
         """
-        h = self.db.hgetall(self.key())
+        h = {}
+        for k in self.attributes.keys():
+            h[k] = getattr(self, k)
         for k in self.lists.keys():
             h[k] = getattr(self, k)
         for k in self.references.keys():
@@ -508,7 +510,11 @@ class Model(object):
         return not self.__eq__(other)
 
     def __repr__(self):
-        return "<%s %s>" % (self.key(), self.attributes_dict)
+        if not self.is_new():
+            return "<%s %s>" % (self.key(), self.attributes_dict)
+        print "nyak"
+        return "<%s %s>" % (self.__class__.__name__, self.attributes_dict)
+
 
 
 def get_model_from_key(key):

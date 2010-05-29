@@ -175,7 +175,7 @@ class ModelSet(Set):
                         "Attribute %s is not indexed in %s class." %
                         (k, self.model_class.__name__))
             indices.append(index)
-        new_set_key = "~%s" % ("+".join([self.key] + indices),)
+        new_set_key = "~%s.%s" % ("+".join([self.key] + indices), id(self))
         s.intersection(new_set_key, *[Set(n) for n in indices])
         self._expire_or_delete.append(new_set_key)
         return Set(new_set_key)
@@ -189,7 +189,7 @@ class ModelSet(Set):
                         "Attribute %s is not indexed in %s class." %
                         (k, self.model_class.__name__))
             indices.append(index)
-        new_set_key = "~%s" % ("-".join([self.key] + indices),)
+        new_set_key = "~%s.%s" % ("-".join([self.key] + indices), id(self))
         s.difference(new_set_key, *[Set(n) for n in indices])
         self._expire_or_delete.append(new_set_key)
         return Set(new_set_key)
@@ -236,7 +236,7 @@ class ModelSet(Set):
                 ordering = ordering.lstrip('-')
             else:
                 desc = False
-            new_set_key = "%s#%s" % (old_set_key, ordering)
+            new_set_key = "%s#%s.%s" % (old_set_key, ordering, id(self))
             by = "%s->%s" % (self.model_class._key['*'], ordering)
             self.db.sort(old_set_key,
                          by=by,
@@ -253,7 +253,7 @@ class ModelSet(Set):
         # sort by id
         num, start = self._get_limit_and_offset()
         old_set_key = skey
-        new_set_key = "%s#" % old_set_key
+        new_set_key = "%s#.%s" % (old_set_key, id(self))
         self.db.sort(old_set_key,
                      store=new_set_key,
                      start=start,
