@@ -512,7 +512,6 @@ class Model(object):
     def __repr__(self):
         if not self.is_new():
             return "<%s %s>" % (self.key(), self.attributes_dict)
-        print "nyak"
         return "<%s %s>" % (self.__class__.__name__, self.attributes_dict)
 
 
