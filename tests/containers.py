@@ -164,6 +164,48 @@ class SetTestCase(unittest.TestCase):
         self.client.sadd('other_set', 'c')
         self.assert_(s.srandmember() in set(['a', 'b']))
 
+    def test_sinter(self):
+        abc = cont.Set("abc")
+        def_ = cont.Set("def")
+        abc.add('a')
+        abc.add('b')
+        abc.add('c')
+        def_.add('d')
+        def_.add('e')
+        def_.add('f')
+
+        self.assertEqual(set([]), abc.sinter(def_))
+        def_.add('b')
+        def_.add('c')
+
+        self.assertEqual(set(['b', 'c']), abc.sinter(def_))
+
+    def test_sunion(self):
+        abc = cont.Set("abc")
+        def_ = cont.Set("def")
+        abc.add('a')
+        abc.add('b')
+        abc.add('c')
+        def_.add('d')
+        def_.add('e')
+        def_.add('f')
+
+        self.assertEqual(set(['a', 'b', 'c', 'd', 'e', 'f']),
+                abc.sunion(def_))
+
+    def test_susdiff(self):
+        abc = cont.Set("abc")
+        def_ = cont.Set("def")
+        abc.add('a')
+        abc.add('b')
+        abc.add('c')
+        def_.add('c')
+        def_.add('b')
+        def_.add('f')
+
+        self.assertEqual(set(['a',]),
+                abc.sdiff(def_))
+
 
 class ListTestCase(unittest.TestCase):
     def setUp(self):

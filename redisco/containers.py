@@ -183,6 +183,29 @@ class Set(Container):
     def __iter__(self):
         return self.members.__iter__()
 
+    
+    def sinter(self, *other_sets):
+        """Performs an intersection between Sets.
+
+        Returns a set of common members. Uses Redis.sinter.
+        """
+        return self.db.sinter([self.key] + [s.key for s in other_sets])
+
+    def sunion(self, *other_sets):
+        """Union between Sets.
+
+        Returns a set of common members. Uses Redis.sunion.
+        """
+        return self.db.sunion([self.key] + [s.key for s in other_sets])
+
+    def sdiff(self, *other_sets):
+        """Union between Sets.
+
+        Returns a set of common members. Uses Redis.sdiff.
+        """
+        return self.db.sdiff([self.key] + [s.key for s in other_sets])
+
+
     DELEGATEABLE_METHODS = ('sadd', 'srem', 'spop', 'smembers',
             'scard', 'sismember', 'srandmember')
 
