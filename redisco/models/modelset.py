@@ -64,7 +64,7 @@ class ModelSet(Set):
 
     def first(self):
         try:
-            return self.__getitem__(0)
+            return self.limit(1).__getitem__(0)
         except IndexError:
             return None
 
