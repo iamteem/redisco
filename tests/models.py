@@ -138,6 +138,35 @@ class ModelTestCase(RediscoTestCase):
         self.assertTrue(index in db.smembers(key['_indices']))
         self.assertTrue("1" in db.smembers(index))
 
+
+    def test_delete(self):
+        Person.objects.create(first_name="Granny", last_name="Goose")
+        Person.objects.create(first_name="Clark", last_name="Kent")
+        Person.objects.create(first_name="Granny", last_name="Mommy")
+        Person.objects.create(first_name="Granny", last_name="Kent")
+
+        for person in Person.objects.all():
+            person.delete()
+
+        self.assertEqual(0, self.client.scard('Person:all'))
+
+        class Event(models.Model):
+            name = models.Attribute(required=True)
+            created_on = models.DateField(required=True)
+
+        from datetime import date
+
+        Event.objects.create(name="Event #1", created_on=date.today())
+        Event.objects.create(name="Event #2", created_on=date.today())
+        Event.objects.create(name="Event #3", created_on=date.today())
+        Event.objects.create(name="Event #4", created_on=date.today())
+
+        for event in Event.objects.all():
+            event.delete()
+
+        self.assertEqual(0, self.client.zcard("Event:created_on"))
+
+
     def test_filter(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
         Person.objects.create(first_name="Clark", last_name="Kent")

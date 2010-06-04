@@ -450,7 +450,7 @@ class Model(object):
         for index in s.members:
             pipe.srem(index, self.id)
         for index in z.members:
-            pipe.srem(index, self.id)
+            pipe.zrem(index, self.id)
         pipe.delete(s.key)
         pipe.delete(z.key)
         pipe.execute()
