@@ -18,9 +18,10 @@ class Container(object):
     ``redisco.connection`` module.
     """
 
-    def __init__(self, key, db=None):
+    def __init__(self, key, db=None, pipeline=None):
         self._db = db
         self.key = key
+        self.pipeline = pipeline
 
     def clear(self):
         """Remove container from Redis database."""
@@ -35,6 +36,8 @@ class Container(object):
 
     @property
     def db(self):
+        if self.pipeline:
+            return self.pipeline
         if self._db:
             return self._db
         if hasattr(self, 'db_cache') and self.db_cache:

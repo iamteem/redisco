@@ -211,9 +211,11 @@ class Model(object):
 
     def delete(self):
         """Deletes the object from the datastore."""
-        self._delete_from_indices()
-        self._delete_membership()
-        del self.db[self.key()]
+        pipeline = self.db.pipeline()
+        self._delete_from_indices(pipeline)
+        self._delete_membership(pipeline)
+        pipeline.delete(self.key())
+        pipeline.execute()
 
     def is_new(self):
         """Returns True if the instance is new.
@@ -336,8 +338,9 @@ class Model(object):
         This method also creates the indices and saves the lists
         associated to the object.
         """
-        self._create_membership()
-        self._update_indices()
+        pipeline = self.db.pipeline()
+        self._create_membership(pipeline)
+        self._update_indices(pipeline)
         h = {}
         # attributes
         for k, v in self.attributes.iteritems():
@@ -365,13 +368,13 @@ class Model(object):
                         h[index] = unicode(v)
                     except UnicodeError:
                         h[index] = unicode(v.decode('utf-8'))
-        del self.db[self.key()]
+        pipeline.delete(self.key())
         if h:
-            self.db.hmset(self.key(), h)
+            pipeline.hmset(self.key(), h)
 
         # lists
         for k, v in self.lists.iteritems():
-            l = List(self.key()[k])
+            l = List(self.key()[k], pipeline=pipeline)
             l.clear()
             values = getattr(self, k)
             if values:
@@ -379,41 +382,40 @@ class Model(object):
                     l.extend([item.id for item in values])
                 else:
                     l.extend(values)
+        pipeline.execute()
 
     ##############
     # Membership #
     ##############
 
-    def _create_membership(self):
+    def _create_membership(self, pipeline=None):
         """Adds the id of the object to the set of all objects of the same
         class.
         """
-        Set(self._key['all']).add(self.id)
+        Set(self._key['all'], pipeline=pipeline).add(self.id)
 
-    def _delete_membership(self):
+    def _delete_membership(self, pipeline=None):
         """Removes the id of the object to the set of all objects of the
         same class.
         """
-        Set(self._key['all']).remove(self.id)
+        Set(self._key['all'], pipeline=pipeline).remove(self.id)
 
 
     ############
     # INDICES! #
     ############
 
-    def _update_indices(self):
+    def _update_indices(self, pipeline=None):
         """Updates the indices of the object."""
-        self._delete_from_indices()
-        self._add_to_indices()
+        self._delete_from_indices(pipeline)
+        self._add_to_indices(pipeline)
 
-    def _add_to_indices(self):
+    def _add_to_indices(self, pipeline):
         """Adds the base64 encoded values of the indices."""
-        pipe = self.db.pipeline()
         for att in self.indices:
-            self._add_to_index(att, pipe=pipe)
-        pipe.execute()
+            self._add_to_index(att, pipeline=pipeline)
 
-    def _add_to_index(self, att, val=None, pipe=None):
+    def _add_to_index(self, att, val=None, pipeline=None):
         """
         Adds the id to the index.
 
@@ -424,36 +426,34 @@ class Model(object):
             return
         t, index = index
         if t == 'attribute':
-            pipe.sadd(index, self.id)
-            pipe.sadd(self.key()['_indices'], index)
+            pipeline.sadd(index, self.id)
+            pipeline.sadd(self.key()['_indices'], index)
         elif t == 'list':
             for i in index:
-                pipe.sadd(i, self.id)
-                pipe.sadd(self.key()['_indices'], i)
+                pipeline.sadd(i, self.id)
+                pipeline.sadd(self.key()['_indices'], i)
         elif t == 'sortedset':
             zindex, index = index
-            pipe.sadd(index, self.id)
-            pipe.sadd(self.key()['_indices'], index)
+            pipeline.sadd(index, self.id)
+            pipeline.sadd(self.key()['_indices'], index)
             descriptor = self.attributes[att]
             score = descriptor.typecast_for_storage(getattr(self, att))
-            pipe.zadd(zindex, self.id, score)
-            pipe.sadd(self.key()['_zindices'], zindex)
+            pipeline.zadd(zindex, self.id, score)
+            pipeline.sadd(self.key()['_zindices'], zindex)
 
 
-    def _delete_from_indices(self):
+    def _delete_from_indices(self, pipeline):
         """Deletes the object's id from the sets(indices) it has been added
         to and removes its list of indices (used for housekeeping).
         """
         s = Set(self.key()['_indices'])
         z = Set(self.key()['_zindices'])
-        pipe = s.db.pipeline()
         for index in s.members:
-            pipe.srem(index, self.id)
+            pipeline.srem(index, self.id)
         for index in z.members:
-            pipe.zrem(index, self.id)
-        pipe.delete(s.key)
-        pipe.delete(z.key)
-        pipe.execute()
+            pipeline.zrem(index, self.id)
+        pipeline.delete(s.key)
+        pipeline.delete(z.key)
 
     def _index_key_for(self, att, value=None):
         """Returns a key based on the attribute and its value.
