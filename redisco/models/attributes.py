@@ -7,7 +7,7 @@ from datetime import datetime, date
 from redisco.containers import List
 from exceptions import FieldValidationError
 
-__all__ = ['Attribute', 'ListField', 'DateTimeField',
+__all__ = ['Attribute', 'CharField', 'ListField', 'DateTimeField',
         'DateField', 'ReferenceField', 'IntegerField',
         'FloatField', 'BooleanField', 'Counter', 'ZINDEXABLE']
 
@@ -107,6 +107,28 @@ class Attribute(object):
         same = len(instance.__class__.objects.filter(**{self.name: encoded}))
         if same > 0:
             return (self.name, 'not unique',)
+
+
+class CharField(Attribute):
+
+    def __init__(self, max_length=255, **kwargs):
+        super(CharField, self).__init__(**kwargs)
+        self.max_length = max_length
+
+    def validate(self, instance):
+        errors = []
+        try:
+            super(CharField, self).validate(instance)
+        except FieldValidationError as err:
+            errors.extend(err.errors)
+        
+        val = getattr(instance, self.name)
+          
+        if val and len(val) > self.max_length:
+            errors.append((self.name, 'exceeds max length'))
+        
+        if errors:
+            raise FieldValidationError(errors)
 
 
 class BooleanField(Attribute):

@@ -3,7 +3,8 @@ from containers import (SetTestCase, ListTestCase, SortedSetTestCase,
         HashTestCase)
 from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
         BooleanFieldTestCase, ListFieldTestCase, ReferenceFieldTestCase,
-        DateTimeFieldTestCase, CounterFieldTestCase, MutexTestCase,)
+        DateTimeFieldTestCase, CounterFieldTestCase, CharFieldTestCase,
+        MutexTestCase,)
 
 import redisco
 redisco.connection_setup(host="localhost", port=6380, db=10)
@@ -23,4 +24,5 @@ def all_tests():
     suite.addTest(unittest.makeSuite(CounterFieldTestCase))
     suite.addTest(unittest.makeSuite(MutexTestCase))
     suite.addTest(unittest.makeSuite(HashTestCase))
+    suite.addTest(unittest.makeSuite(CharFieldTestCase))
     return suite

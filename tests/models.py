@@ -10,8 +10,8 @@ from redisco import models
 from redisco.models.base import Mutex
 
 class Person(models.Model):
-    first_name = models.Attribute()
-    last_name = models.Attribute()
+    first_name = models.CharField()
+    last_name = models.CharField()
 
     def full_name(self):
         return "%s %s" % (self.first_name, self.last_name,)
@@ -38,7 +38,7 @@ class ModelTestCase(RediscoTestCase):
         p = Person(first_name="Darken", last_name="Rahl")
         self.assertTrue(p.is_new())
 
-    def test_attributes(self):
+    def test_CharFields(self):
         person = Person(first_name="Granny", last_name="Goose")
         self.assertEqual("Granny", person.first_name)
         self.assertEqual("Goose", person.last_name)
@@ -88,7 +88,7 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual("Morgan", p.first_name)
         self.assertEqual(None, p.last_name)
 
-    def test_default_attribute_val(self):
+    def test_default_CharField_val(self):
         class User(models.Model):
             views = models.IntegerField(default=199)
             liked = models.BooleanField(default=True)
@@ -151,7 +151,7 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual(0, self.client.scard('Person:all'))
 
         class Event(models.Model):
-            name = models.Attribute(required=True)
+            name = models.CharField(required=True)
             created_on = models.DateField(required=True)
 
         from datetime import date
@@ -283,7 +283,7 @@ class ModelTestCase(RediscoTestCase):
     def test_integer_field(self):
         class Character(models.Model):
             n = models.IntegerField()
-            m = models.Attribute()
+            m = models.CharField()
 
         Character.objects.create(n=1998, m="A")
         Character.objects.create(n=3100, m="b")
@@ -321,7 +321,7 @@ class ModelTestCase(RediscoTestCase):
         from datetime import datetime
 
         class Post(models.Model):
-            name = models.Attribute()
+            name = models.CharField()
             date = models.DateTimeField()
 
         dates = (
@@ -350,7 +350,7 @@ class ModelTestCase(RediscoTestCase):
 
     def test_validation(self):
         class Person(models.Model):
-            name = models.Attribute(required=True)
+            name = models.CharField(required=True)
         p = Person(name="Kokoy")
         self.assertTrue(p.is_valid())
 
@@ -390,10 +390,10 @@ class ModelTestCase(RediscoTestCase):
 
     def test_load_object_from_key(self):
         class Schedule(models.Model):
-            att = models.Attribute()
+            att = models.CharField()
 
         class PaperType(models.Model):
-            att = models.Attribute()
+            att = models.CharField()
 
         assert Schedule.objects.create(att="dinuguan")
         assert Schedule.objects.create(att="chicharon")
@@ -430,7 +430,7 @@ class ModelTestCase(RediscoTestCase):
 
     def test_uniqueness_validation(self):
         class Student(models.Model):
-            student_id = models.Attribute(unique=True)
+            student_id = models.CharField(unique=True)
 
         student = Student.objects.create(student_id="042231")
         self.assert_(student)
@@ -502,17 +502,17 @@ class ModelTestCase(RediscoTestCase):
 
 
 class Event(models.Model):
-    name = models.Attribute(required=True)
+    name = models.CharField(required=True)
     date = models.DateField(required=True)
 
 class DateFieldTestCase(RediscoTestCase):
 
-    def test_attribute(self):
+    def test_CharField(self):
         event = Event(name="Legend of the Seeker Premiere",
                       date=date(2008, 11, 12))
         self.assertEqual(date(2008, 11, 12), event.date)
 
-    def test_saved_attribute(self):
+    def test_saved_CharField(self):
         instance = Event.objects.create(name="Legend of the Seeker Premiere",
                       date=date(2008, 11, 12))
         assert instance
@@ -540,7 +540,7 @@ class DateFieldTestCase(RediscoTestCase):
 
     def test_auto_now(self):
         class Report(models.Model):
-            title = models.Attribute()
+            title = models.CharField()
             created_on = models.DateField(auto_now_add=True)
             updated_on = models.DateField(auto_now=True)
 
@@ -552,16 +552,28 @@ class DateFieldTestCase(RediscoTestCase):
         self.assertEqual(date.today(), r.created_on)
 
 
+class CharFieldTestCase(RediscoTestCase):
+
+    def test_max_length(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=20, required=True)
+
+        p = Person(name='The quick brown fox jumps over the lazy dog.')
+
+        self.assertFalse(p.is_valid())
+        self.assert_(('name', 'exceeds max length') in p.errors)
+
+
 class Student(models.Model):
-    name = models.Attribute(required=True)
+    name = models.CharField(required=True)
     average = models.FloatField(required=True)
 
 class FloatFieldTestCase(RediscoTestCase):
-    def test_attribute(self):
+    def test_CharField(self):
         s = Student(name="Richard Cypher", average=86.4)
         self.assertEqual(86.4, s.average)
 
-    def test_saved_attribute(self):
+    def test_saved_CharField(self):
         s = Student.objects.create(name="Richard Cypher",
                       average=3.14159)
         assert s
@@ -582,16 +594,16 @@ class FloatFieldTestCase(RediscoTestCase):
 
 
 class Task(models.Model):
-    name = models.Attribute()
+    name = models.CharField()
     done = models.BooleanField()
 
 class BooleanFieldTestCase(RediscoTestCase):
-    def test_attribute(self):
+    def test_CharField(self):
         t = Task(name="Cook dinner", done=False)
         assert t.save()
         self.assertFalse(t.done)
 
-    def test_saved_attribute(self):
+    def test_saved_CharField(self):
         t = Task(name="Cook dinner", done=False)
         assert t.save()
 
@@ -623,7 +635,7 @@ class BooleanFieldTestCase(RediscoTestCase):
 class ListFieldTestCase(RediscoTestCase):
     def test_basic(self):
         class Cake(models.Model):
-            name = models.Attribute()
+            name = models.CharField()
             ingredients = models.ListField(str)
             sizes = models.ListField(int)
 
@@ -657,11 +669,11 @@ class ListFieldTestCase(RediscoTestCase):
 
     def test_list_of_reference_fields(self):
         class Book(models.Model):
-            title = models.Attribute(required=True)
+            title = models.CharField(required=True)
             date_published = models.DateField(required=True)
 
         class Author(models.Model):
-            name = models.Attribute(required=True)
+            name = models.CharField(required=True)
             books = models.ListField(Book)
 
         book = Book.objects.create(
@@ -693,7 +705,7 @@ class ListFieldTestCase(RediscoTestCase):
 
     def test_lazy_reference_field(self):
         class User(models.Model):
-            name = models.Attribute()
+            name = models.CharField()
             likes = models.ListField('Link')
 
             def likes_link(self, link):
@@ -706,7 +718,7 @@ class ListFieldTestCase(RediscoTestCase):
                         self.save()
 
         class Link(models.Model):
-            url = models.Attribute()
+            url = models.CharField()
 
         user = User.objects.create(name="Lion King")
         assert Link.objects.create(url="http://google.com")
@@ -729,11 +741,11 @@ class ListFieldTestCase(RediscoTestCase):
 class ReferenceFieldTestCase(RediscoTestCase):
     def test_basic(self):
         class Word(models.Model):
-            placeholder = models.Attribute()
+            placeholder = models.CharField()
 
         class Character(models.Model):
             n = models.IntegerField()
-            m = models.Attribute()
+            m = models.CharField()
             word = models.ReferenceField(Word)
 
         Word.objects.create()
@@ -753,13 +765,13 @@ class ReferenceFieldTestCase(RediscoTestCase):
 
     def test_lazy_reference_field(self):
         class User(models.Model):
-            name = models.Attribute()
+            name = models.CharField()
             address = models.ReferenceField('Address')
 
         class Address(models.Model):
-            street_address = models.Attribute()
-            city = models.Attribute()
-            zipcode = models.Attribute()
+            street_address = models.CharField()
+            city = models.CharField()
+            zipcode = models.CharField()
 
         address = Address.objects.create(street_address="32/F Redisville",
                 city="NoSQL City", zipcode="1.3.18")
@@ -779,7 +791,7 @@ class DateTimeFieldTestCase(RediscoTestCase):
         from datetime import datetime
         n = datetime(2009, 12, 31)
         class Post(models.Model):
-            title = models.Attribute()
+            title = models.CharField()
             date_posted = models.DateTimeField()
             created_at = models.DateTimeField(auto_now_add=True)
         post = Post(title="First!", date_posted=n)
@@ -793,8 +805,8 @@ class CounterFieldTestCase(RediscoTestCase):
 
     def test_basic(self):
         class Post(models.Model):
-            title = models.Attribute()
-            body = models.Attribute(indexed=False)
+            title = models.CharField()
+            body = models.CharField(indexed=False)
             liked = models.Counter()
 
         post = Post.objects.create(title="First!",
