@@ -86,7 +86,7 @@ def _initialize_counters(model_class, name, bases, attrs):
 
 def _initialize_key(model_class, name):
     """Initializes the key of the model."""
-    model_class._key = Key(name)
+    model_class._key = Key(model_class._meta['key'] or name)
 
 
 def _initialize_manager(model_class):
@@ -168,7 +168,7 @@ class Model(object):
 
     def validate(self):
         """Overriden in the model class.
-        
+
         Do custom validation here. Add tuples to self._errors.
 
         Example:

@@ -212,7 +212,7 @@ class ModelTestCase(RediscoTestCase):
                     .exclude(last_name="Mommy"))
         self.assertEqual(3, len(persons))
 
-    
+
     def test_first(self):
         Person.objects.create(first_name="Granny", last_name="Goose")
         Person.objects.create(first_name="Clark", last_name="Kent")
@@ -499,6 +499,20 @@ class ModelTestCase(RediscoTestCase):
         p = Person.objects.get_or_create(first_name="Jonathan",
                 last_name="Weiss")
         self.assertEqual('7', p.id)
+
+
+    def test_customizable_key(self):
+        class Person(models.Model):
+            name = models.CharField()
+
+            class Meta:
+                key = 'People'
+
+        p = Person(name="Clark Kent")
+        self.assert_(p.is_valid())
+        self.assert_(p.save())
+
+        self.assert_('1' in self.client.smembers('People:all'))
 
 
 class Event(models.Model):
