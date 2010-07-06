@@ -12,13 +12,13 @@ easier access to Redis sets, lists, and sorted sets.
 
 Installation
 ------------
-Redisco requires latest version of redis-py so get it first.
+Redisco requires redis-py 2.0.0 so get it first.
 
-    pip install git+http://github.com/andymccurdy/redis-py.git@master#egg=redis-py
+    pip install redis
 
 Then install redisco.
 
-    pip install git+http://github.com/iamteem/redisco.git@master#egg=redisco
+    pip install redisco
 
 
 Models
@@ -282,7 +282,7 @@ interact with the key-value storage. By default, it connects
 to localhost:6379, selecting db 0. If you wish to specify settings:
 
 ::
-    
+
     import redisco
     redisco.connection_setup(host='localhost', port=6380, db=10)
 
