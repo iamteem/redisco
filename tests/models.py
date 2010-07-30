@@ -769,7 +769,10 @@ class ReferenceFieldTestCase(RediscoTestCase):
         Character.objects.create(n=34, m='c', word=word)
         Character.objects.create(n=34, m='d')
         for char in Character.objects.all():
-            self.assertEqual(word, char.word)
+            if char.m != 'd':
+                self.assertEqual(word, char.word)
+            else:
+                self.assertEqual(None, char.word)
         a, b, c, d = list(Character.objects.all())
         self.assertTrue(a in word.character_set)
         self.assertTrue(b in word.character_set)

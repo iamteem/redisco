@@ -339,17 +339,20 @@ class ReferenceField(object):
         if not isinstance(value, self.value_type()) and \
                 value is not None:
             raise TypeError
+        # remove the cached value from the instance
+        if hasattr(instance, '_' + self.name):
+            delattr(instance, '_' + self.name)
         setattr(instance, self.attname, value.id)
 
     def __get__(self, instance, owner):
         try:
-            if not hasattr(self, '_' + self.name):
+            if not hasattr(instance, '_' + self.name):
                 o = self.value_type().objects.get_by_id(
                                     getattr(instance, self.attname))
-                setattr(self, '_' + self.name, o)
-            return getattr(self, '_' + self.name)
+                setattr(instance, '_' + self.name, o)
+            return getattr(instance, '_' + self.name)
         except AttributeError:
-            setattr(self, '_' + self.name, self.default)
+            setattr(instance, '_' + self.name, self.default)
             return self.default
 
     def value_type(self):
