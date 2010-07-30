@@ -777,6 +777,22 @@ class ReferenceFieldTestCase(RediscoTestCase):
         self.assertTrue(d not in word.character_set)
         self.assertEqual(3, len(word.character_set))
 
+    def test_reference(self):
+        class Department(models.Model):
+            name = models.Attribute(required=True)
+
+        class Person(models.Model):
+            name = models.Attribute(required=True)
+            manager = models.ReferenceField('Person', related_name='underlings')
+            department = models.ReferenceField(Department)
+
+        d1 = Department.objects.create(name='Accounting')
+        d2 = Department.objects.create(name='Billing')
+        p1 = Person.objects.create(name='Joe', department=d1)
+        p2 = Person.objects.create(name='Jack', department=d2)
+        self.assertEqual(p1.department_id, p1.department.id)
+        self.assertEqual(p2.department_id, p2.department.id)
+
     def test_lazy_reference_field(self):
         class User(models.Model):
             name = models.CharField()

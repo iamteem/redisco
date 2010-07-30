@@ -4,3 +4,4 @@ redisco.egg-info
 *.pyc
 .DS_Store
 dump.rdb
+*.swp

@@ -1,4 +1,6 @@
+import os
 import unittest
+from connection import ConnectionTestCase
 from containers import (SetTestCase, ListTestCase, SortedSetTestCase,
         HashTestCase)
 from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
@@ -7,10 +9,13 @@ from models import (ModelTestCase, DateFieldTestCase, FloatFieldTestCase,
         MutexTestCase,)
 
 import redisco
-redisco.connection_setup(host="localhost", port=6380, db=10)
+REDIS_DB = int(os.environ.get('REDIS_DB', 10)) # WARNING TESTS FLUSHDB!!!
+REDIS_PORT = int(os.environ.get('REDIS_PORT', 6380))
+redisco.connection_setup(host="localhost", port=REDIS_PORT, db=REDIS_DB)
 
 def all_tests():
     suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(ConnectionTestCase))
     suite.addTest(unittest.makeSuite(SetTestCase))
     suite.addTest(unittest.makeSuite(ListTestCase))
     suite.addTest(unittest.makeSuite(SortedSetTestCase))
