@@ -299,6 +299,91 @@ class List(Container):
     DELEGATEABLE_METHODS = ('lrange', 'lpush', 'rpush', 'llen',
             'ltrim', 'lindex', 'lset', 'lpop', 'lrem', 'rpop',)
 
+class TypedList(object):
+    """Create a container to store a list of objects in Redis.
+
+    Arguments:
+        key -- the Redis key this container is stored at
+        target_type -- can be a Python object or a redisco model class.
+
+    Optional Arguments:
+        type_args -- additional args to pass to type constructor (tuple)
+        type_kwargs -- additional kwargs to pass to type constructor (dict)
+
+    If target_type is not a redisco model class, the target_type should
+    also a callable that casts the (string) value of a list element into
+    target_type. E.g. str, unicode, int, float -- using this format:
+
+        target_type(string_val_of_list_elem, *type_args, **type_kwargs)
+
+    target_type also accepts a string that refers to a redisco model.
+    """
+
+    def __init__(self, key, target_type, type_args=[], type_kwargs={}, **kwargs):
+        self.list = List(key, **kwargs)
+        self.klass = self.value_type(target_type)
+        self._klass_args = type_args
+        self._klass_kwargs = type_kwargs
+        from models.base import Model
+        self._redisco_model = issubclass(self.klass, Model)
+
+    def value_type(self, target_type):
+        if isinstance(target_type, basestring):
+            t = target_type
+            from models.base import get_model_from_key
+            target_type = get_model_from_key(target_type)
+            if target_type is None:
+                raise ValueError("Unknown Redisco class %s" % t)
+        return target_type
+
+    def typecast_item(self, value):
+        if self._redisco_model:
+            return self.klass.objects.get_by_id(value)
+        else:
+            return self.klass(value, *self._klass_args, **self._klass_kwargs)
+
+    def typecast_iter(self, values):
+        if self._redisco_model:
+            return filter(lambda o: o is not None, [self.klass.objects.get_by_id(v) for v in values])
+        else:
+            return [self.klass(value, *self._klass_args, **self._klass_kwargs) for v in values]
+
+    def all(self):
+        """Returns all items in the list."""
+        return self.typecast_iter(self.list.all())
+
+    def __len__(self):
+        return len(self.list)
+
+    def __getitem__(self, index):
+        val = self.list[index]
+        if isinstance(index, slice):
+            return self.typecast_iter(val)
+        else:
+            return self.typecast_item(val)
+
+    def typecast_stor(self, value):
+        if self._redisco_model:
+            return value.id
+        else:
+            return value
+
+    def append(self, value):
+        self.list.append(self.typecast_stor(value))
+
+    def extend(self, iter):
+        self.list.extend(map(lambda i: self.typecast_stor(i), iter))
+
+    def __setitem__(self, index, value):
+        self.list[index] = self.typecast_stor(value)
+
+    def __iter__(self):
+        for i in xrange(len(self.list)):
+            yield self[i]
+
+    def __repr__(self):
+        return repr(self.typecast_iter(self.members))
+
 class SortedSet(Container):
 
     def add(self, member, score):

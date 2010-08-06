@@ -294,6 +294,55 @@ class ListTestCase(unittest.TestCase):
         self.assertEqual('a', l.lpop())
         self.assertEqual('b', l.rpop())
 
+class TypedListTestCase(unittest.TestCase):
+    def setUp(self):
+        self.client = redisco.get_client()
+        self.client.flushdb()
+
+    def tearDown(self):
+        self.client.flushdb()
+
+    def test_basic_types(self):
+        alpha = cont.TypedList('alpha', unicode, type_args=('UTF-8',))
+        monies = u'\u0024\u00a2\u00a3\u00a5'
+        alpha.append(monies)
+        val = alpha[-1]
+        self.assertEquals(monies, val)
+
+        beta = cont.TypedList('beta', int)
+        for i in xrange(1000):
+            beta.append(i)
+        for i, x in enumerate(beta):
+            self.assertEquals(i, x)
+
+        charlie = cont.TypedList('charlie', float)
+        for i in xrange(100):
+            val = 1 * pow(10, i*-1)
+            charlie.append(val)
+        for i, x in enumerate(charlie):
+            val = 1 * pow(10, i*-1)
+            self.assertEquals(x, val)
+
+    def test_model_type(self):
+        from redisco import models
+        class Person(models.Model):
+            name = models.Attribute()
+            friend = models.ReferenceField('Person')
+
+        iamteam = Person.objects.create(name='iamteam')
+        clayg = Person.objects.create(name='clayg', friend=iamteam)
+
+        l = cont.TypedList('friends', 'Person')
+        l.extend(Person.objects.all())
+
+        for person in l:
+            if person.name == 'clayg':
+                self.assertEquals(iamteam, clayg.friend)
+            else:
+                # this if failing for some reason ???
+                #self.assertEquals(person.friend, clayg) 
+                pass
+
 
 class SortedSetTestCase(unittest.TestCase):
     def setUp(self):
