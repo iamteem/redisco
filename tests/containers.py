@@ -277,6 +277,37 @@ class ListTestCase(unittest.TestCase):
         alpha.reverse()
         self.assertEqual(['E', 'D', 'C', 'B', 'A'], list(alpha))
 
+    def test_pop_onto(self):
+        a = cont.List('alpha')
+        b = cont.List('beta')
+        a.extend(range(10))
+
+        # test pop_onto
+        a_snap = list(a.members)
+        while True:
+            v = a.pop_onto(b.key)
+            if not v:
+                break
+            else:
+                self.assertTrue(v not in a.members)
+                self.assertTrue(v in b.members)
+
+        self.assertEqual(a_snap, b.members)
+
+        # test rpoplpush
+        b_snap = list(b.members)
+        while True:
+            v = b.rpoplpush(a.key)
+            if not v:
+                break
+            else:
+                self.assertTrue(v in a.members)
+                self.assertTrue(v not in b.members)
+
+        self.assertEqual(b_snap, a.members)
+        
+
+
     def test_delegateable_methods(self):
         l = cont.List('mylist')
         self.assertEqual([], l.lrange(0, -1))
@@ -422,3 +453,7 @@ class HashTestCase(unittest.TestCase):
         self.assertEqual(4, int(h.hget('Red')))
         h.hmset({'Blue': 100, 'Green': 19, 'Yellow': 1024})
         self.assertEqual(['100', '19'], h.hmget(['Blue', 'Green']))
+
+if __name__ == "__main__":
+    import sys
+    unittest.main(argv=sys.argv)

@@ -253,6 +253,13 @@ class List(Container):
         """Remove and return the last item"""
         return self.rpop()
 
+    def pop_onto(self, key):
+        """
+        Remove an element from the list,
+        atomically add it to the head of the list indicated by key
+        """
+        return self.rpoplpush(key)
+
     def shift(self):
         """Remove and return the first item."""
         return self.lpop()
@@ -294,7 +301,7 @@ class List(Container):
                 self.members)
 
     DELEGATEABLE_METHODS = ('lrange', 'lpush', 'rpush', 'llen',
-            'ltrim', 'lindex', 'lset', 'lpop', 'lrem', 'rpop',)
+            'ltrim', 'lindex', 'lset', 'lpop', 'lrem', 'rpop', 'rpoplpush')
 
 class TypedList(object):
     """Create a container to store a list of objects in Redis.
