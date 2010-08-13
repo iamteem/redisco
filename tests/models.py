@@ -358,6 +358,15 @@ class ModelTestCase(RediscoTestCase):
         self.assertFalse(p.is_valid())
         self.assertTrue(('name', 'required') in p.errors)
 
+    def test_errors(self):
+        class Person(models.Model):
+            name = models.CharField(required=True)
+        p = Person.objects.create(name="Chuck")
+        self.assertFalse(p.errors)
+
+        p = Person(name="Chuck")
+        self.assertFalse(p.errors)
+
     def test_custom_validation(self):
         class Ninja(models.Model):
             def validator(field_name, age):
