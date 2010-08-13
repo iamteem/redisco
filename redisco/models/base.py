@@ -301,6 +301,8 @@ class Model(object):
     @property
     def errors(self):
         """Returns the list of errors after validation."""
+        if not hasattr(self, '_errors'):
+            self.is_valid()
         return self._errors
 
     @property
