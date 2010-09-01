@@ -194,7 +194,7 @@ class Model(object):
     def save(self):
         """Saves the instance to the datastore."""
         if not self.is_valid():
-            return None
+            return self._errors
         _new = self.is_new()
         if _new:
             self._initialize_id()
