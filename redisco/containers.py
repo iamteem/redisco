@@ -166,9 +166,6 @@ class Set(Container):
         self.db.sdiffstore(self.key, [self.key, other.key])
         return self
     
-    def __repr__(self):
-        return u"<redisco.containers.Set(key=%s)>" % self.key
-
     def all(self):
         return self.db.smembers(self.key)
     members = property(all)
@@ -346,7 +343,7 @@ class TypedList(object):
         if self._redisco_model:
             return filter(lambda o: o is not None, [self.klass.objects.get_by_id(v) for v in values])
         else:
-            return [self.klass(value, *self._klass_args, **self._klass_kwargs) for v in values]
+            return [self.klass(v, *self._klass_args, **self._klass_kwargs) for v in values]
 
     def all(self):
         """Returns all items in the list."""
@@ -382,7 +379,7 @@ class TypedList(object):
             yield self[i]
 
     def __repr__(self):
-        return repr(self.typecast_iter(self.members))
+        return repr(self.typecast_iter(self.list))
 
 class SortedSet(Container):
 
