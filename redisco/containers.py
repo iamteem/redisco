@@ -431,8 +431,16 @@ class SortedSet(Container):
         """Returns the members of the set."""
         return self.zrange(0, -1)
 
+    @property
+    def revmembers(self):
+        """Returns the members of the set in reverse."""
+        return self.zrevrange(0, -1)
+
     def __iter__(self):
         return self.members.__iter__()
+
+    def __reversed__(self):
+        return self.revmembers.__iter__()
 
     def __repr__(self):
         return "<%s '%s' %s>" % (self.__class__.__name__, self.key,
