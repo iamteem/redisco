@@ -498,7 +498,7 @@ class SortedSet(Container):
         return self.zrangebyscore(value, value)
 
     DELEGATEABLE_METHODS = ('zadd', 'zrem', 'zincrby', 'zrank',
-            'zrevrank', 'zrange', 'zrangebyscore', 'zcard',
+            'zrevrank', 'zrange', 'zrevrange', 'zrangebyscore', 'zcard',
             'zscore', 'zremrangebyrank', 'zremrangebyscore')
 
 

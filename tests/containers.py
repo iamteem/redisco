@@ -411,6 +411,10 @@ class SortedSetTestCase(unittest.TestCase):
         zset.zadd("4", 4)
         self.assertEqual(4, zset.zcard())
         self.assertEqual(4, zset.zscore('4'))
+        self.assertEqual(['1', '2', '3', '4'], list(zset))
+        self.assertEqual(zset.zrange(0, -1), list(zset))
+        self.assertEqual(['4', '3', '2', '1'], zset.zrevrange(0, -1))
+        self.assertEqual(list(reversed(zset)), zset.zrevrange(0, -1))
 
 
 class HashTestCase(unittest.TestCase):
