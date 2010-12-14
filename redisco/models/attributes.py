@@ -64,15 +64,12 @@ class Attribute(object):
 
     def typecast_for_read(self, value):
         """Typecasts the value for reading from Redis."""
-        return value
+        return value.decode('utf-8')
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to Redis."""
-        try:
-            return unicode(value)
-        except UnicodeError:
-            return unicode(value.decode('utf-8'))
-    
+        return unicode(value).encode('utf-8')
+
     def value_type(self):
         return unicode
 
@@ -85,6 +82,10 @@ class Attribute(object):
         # type_validation
         if val and not isinstance(val, self.acceptable_types()):
             errors.append((self.name, 'bad type',))
+        try:
+            unicode(val)
+        except:
+            errors.append((self.name, 'does not convert to unicode'))
         # validate first standard stuff
         if self.required:
             if val is None or not unicode(val).strip():
