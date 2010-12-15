@@ -826,7 +826,9 @@ class ReferenceFieldTestCase(RediscoTestCase):
         user = User.objects.create(name="Richard Cypher", address=address)
         assert user
 
+        a = Address.objects.all()[0]
         u = User.objects.all()[0]
+        self.assertTrue(address in address.user_set)
         self.assertEqual("32/F Redisville", u.address.street_address)
         self.assertEqual("NoSQL City", u.address.city)
         self.assertEqual("1.3.18", u.address.zipcode)

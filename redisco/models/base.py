@@ -35,7 +35,7 @@ def _initialize_referenced(model_class, attribute):
 
     klass = attribute._target_type
     if isinstance(klass, basestring):
-        return (klass, attribute)
+        return (klass, model_class, attribute)
     else:
         related_name = (attribute.related_name or
                 model_class.__name__.lower() + '_set')
@@ -139,10 +139,10 @@ class ModelBase(type):
         _initialize_manager(cls)
         # if targeted by a reference field using a string,
         # override for next try
-        for k, v in _deferred_refs:
-            if name == k:
-                v._target_type = cls
-                _initialize_referenced(cls, v)
+        for target, model_class, att in _deferred_refs:
+            if name == target:
+                att._target_type = cls
+                _initialize_referenced(model_class, att)
 
 
 class Model(object):
