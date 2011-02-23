@@ -56,15 +56,15 @@ class ModelTestCase(RediscoTestCase):
         self.assertEqual(None, jejomar.last_name)
 
     def test_unicode(self):
-        p = Person(first_name="Niña", last_name="Jose")
+        p = Person(first_name=u"Niña", last_name="Jose")
         self.assert_(p.save())
         g = Person.objects.create(first_name="Granny", last_name="Goose")
         self.assert_(g)
 
-        p = Person.objects.filter(first_name="Niña").first()
+        p = Person.objects.filter(first_name=u"Niña").first()
         self.assert_(p)
-        self.assertEqual("Niña Jose", p.full_name())
-
+        self.assert_(isinstance(p.full_name(), unicode))
+        self.assertEqual(u"Niña Jose", p.full_name())
 
     def test_repr(self):
         person1 = Person(first_name="Granny", last_name="Goose")
