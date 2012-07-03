@@ -358,6 +358,17 @@ class ModelTestCase(RediscoTestCase):
         self.assertFalse(p.is_valid())
         self.assertTrue(('name', 'required') in p.errors)
 
+    def test_validation_of_unique_fields(self):
+        class Person(models.Model):
+            name = models.CharField(required=True, unique=True)
+
+        p = Person(name="Lincoln")
+        self.assertTrue(p.is_valid())
+        self.assert_(p.save())
+
+        p_from_db = Person.objects.get_by_id(p.id)
+        self.assertTrue(p.is_valid())
+
     def test_errors(self):
         class Person(models.Model):
             name = models.CharField(required=True, unique=True)
