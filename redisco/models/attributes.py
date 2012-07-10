@@ -106,7 +106,7 @@ class Attribute(object):
     def validate_uniqueness(self, instance, val):
         encoded = self.typecast_for_storage(val)
         same = len(instance.__class__.objects.filter(**{self.name: encoded}))
-        if same > 0:
+        if same > (0 if instance.is_new() else 1):
             return (self.name, 'not unique',)
 
 
